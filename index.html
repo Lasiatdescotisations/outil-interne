@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head><meta name="robots" content="noindex, nofollow, noarchive"><meta name="googlebot" content="noindex, nofollow"><meta name="referrer" content="no-referrer">
+<head>
+<meta name="robots" content="noindex, nofollow">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Calcul d'indemnités de rupture</title>
@@ -54,6 +55,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);padding:0
 .nav button{display:flex;align-items:center;padding:0 13px;background:none;border:0;color:var(--ink-2);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
 .nav button:hover{color:var(--ink)}
 .nav button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.nav button[hidden]{display:none}
 .nav .count{margin-left:6px;font-size:11px;font-family:var(--mono);background:var(--accent-soft);color:var(--ink);border-radius:20px;padding:1px 7px}
 .nav .count.ko{background:var(--stop-soft)}
 .top-right{margin-left:auto;font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
@@ -249,9 +251,9 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
   <nav class="nav" id="nav">
     <button data-view="fiche" class="on">Fiche</button>
     <button data-view="regles">Règles</button>
-    <button data-view="tests">Tests <span class="count" id="tcount">…</span></button>
+    <button data-view="tests" id="nav-tests" hidden>Tests <span class="count" id="tcount">…</span></button>
   </nav>
-  <div class="top-right">V2 · d'après vos fiches · règles à valider</div>
+  <div class="top-right" id="ver" title="">V2.8 · 21/11/2026 · règles à valider</div>
 </header>
 
 <main class="wrap">
@@ -308,6 +310,9 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
          <select id="ccn"></select>
          <button class="btn ghost sm" id="b-rules" type="button" style="margin-top:6px;align-self:flex-start">Voir les règles de cette convention →</button>
        </label>
+     </div>
+     <div class="row" id="w-eco" hidden>
+       <label class="chk"><input type="checkbox" id="eco"><span>Licenciement pour motif économique (majorations ou barèmes propres à certaines conventions : 1501, 1996 cadres, 2216, 0573 agents de maîtrise)</span></label>
      </div>
      <div class="row three">
        <label class="f"><span>Date de naissance</span><input type="date" id="naissance"></label>
@@ -415,6 +420,10 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
   </div>
 </section>
 
+<footer class="foot" style="max-width:1100px;margin:0 auto;padding:6px 16px 28px;color:var(--muted);font-size:12px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center">
+  <span id="foot-ver">Version V2.8 du 21/11/2026</span>
+  <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="opt-tests"> Afficher l'onglet Tests (cas chiffrés)</label>
+</footer>
 </main>
 
 <script>
@@ -664,9 +673,9 @@ const CCN = {
     }
   },
   '1596': {
-    nom:'Bâtiment — ouvriers, entreprises jusqu\'à 10 salariés (IDCC 1596)', categories:null, basis:'max', ageMajoration:true, absOverride:{}, notes:[],
+    nom:'Bâtiment — ouvriers, entreprises jusqu\'à 10 salariés (IDCC 1596)', categories:null, basis:'max', ageMajoration:true, absOverride:{}, notes:['Licenciement (art. 10.3) : due à l\'ouvrier qui ne remplit pas, à son départ, les conditions d\'une pension de vieillesse à taux plein (condition non vérifiée par l\'outil) ; 1/10 de mois par année de 2 à 5 ans, 3/20 dès 5 ans, +1/20 au-delà de 15 ans, majoration de 10 % à plus de 55 ans.','Retraite : l\'indemnité conventionnelle de départ est servie par la CNPO (art. 15 du règlement du régime national de prévoyance), pas par l\'employeur ; l\'outil ne calcule que le minimum légal.'],
     conv(motif, c){
-      if(motif==='departRet'||motif==='miseRet') return { mois:0, expr:'0', lignes:['Bâtiment ouvriers : une « indemnité de fin de carrière » (légale + complément conventionnel) existe, son barème n\'est pas encore modélisé.'], nonModelise:true };
+      if(motif==='departRet'||motif==='miseRet') return renvoiLegal(motif,c,'Bâtiment ouvriers (art. 10.3) : l\'indemnité conventionnelle de départ à la retraite est servie par la CNPO (art. 15 du règlement du régime de prévoyance), pas par l\'employeur ; à la charge de l\'employeur, seul le minimum légal');
       const y=c.mois/12;
       let mo=0, txt;
       if(y<2){ txt='moins de 2 ans d\'ancienneté : pas d\'indemnité conventionnelle'; }
@@ -710,7 +719,7 @@ const base0 = { categories:null, basis:'max', ageMajoration:false, absOverride:{
 Object.assign(CCN, {
   '1597': Object.assign({}, CCN['1596'], { nom:'Bâtiment — ouvriers, entreprises de plus de 10 salariés (IDCC 1597)',
     conv(motif, c){ const r=CCN['1596'].conv(motif,c); r.lignes=r.lignes.map(l=>l.replace('≤ 10 salariés','> 10 salariés')); return r; },
-    notes:['Barème supposé identique à celui des ouvriers ≤ 10 salariés (1596) : à confirmer sur le texte.'] }),
+    notes:['Art. 10.3 relu le 21/11/2026 : barème identique à celui des ouvriers ≤ 10 salariés (1596), y compris le renvoi à la CNPO pour la retraite.'].concat(CCN['1596'].notes) }),
   '2609': { ...base0, nom:'Bâtiment — ETAM (IDCC 2609)', ageMajoration:true,
     notes:['Assiette conventionnelle : rémunération du dernier mois avant la notification + 1/12 des éléments variables ; ici : plus favorable des moyennes 12 / 3 mois.'],
     conv(motif, c){
@@ -739,7 +748,7 @@ Object.assign(CCN, {
       return renvoiLegal(motif,c,'Production agricole');
     } },
   '1501': { ...base0, nom:'Restauration rapide (IDCC 1501)', categories:[['nc','Non-cadres'],['cadre','Cadres']],
-    notes:['Seuil d\'ancienneté contradictoire dans la synthèse (1 an dans le texte, 2 ans dans le tableau) : 2 ans retenus pour les non-cadres, 1 an pour les cadres (disposition particulière).','Cadres : barème lu sur le texte de l\'art. 13 (1/10 jusqu\'à 5 ans ; au-delà 2/10 par année + 1/15 de 5 à 10 ans + 2/15 de 10 à 15 ans + 3/15 au-delà). Le simulateur officiel du Code du travail numérique applique à tort la tranche 5-10 ans à la majoration 2/15 : écart assumé.','Majoration de 15 % (licenciement économique, plus de 50 ans, 10 ans d\'ancienneté) : non gérée.','Départ en retraite : 60 ans révolus requis par la convention.'],
+    notes:['Seuil d\'ancienneté contradictoire dans la synthèse (1 an dans le texte, 2 ans dans le tableau) : 2 ans retenus pour les non-cadres, 1 an pour les cadres (disposition particulière).','Cadres : barème lu sur le texte de l\'art. 13 (1/10 jusqu\'à 5 ans ; au-delà 2/10 par année + 1/15 de 5 à 10 ans + 2/15 de 10 à 15 ans + 3/15 au-delà). Le simulateur officiel du Code du travail numérique applique à tort la tranche 5-10 ans à la majoration 2/15 : écart assumé.','Majoration de 15 % pour licenciement économique (50 ans et plus, 10 ans d\'ancienneté) : appliquée quand la case « motif économique » est cochée.','Départ en retraite : 60 ans révolus requis par la convention.'],
     conv(motif, c){
       const y=c.mois/12;
       if(motif==='departRet'){ const mo=palierMois(c.mois,[[10,1],[15,2],[20,3],[30,4]]); return { mois:mo, expr:String(mo), lignes:[palierTxt('Restauration rapide (art. 28) départ retraite',y,mo)] }; }
@@ -748,12 +757,16 @@ Object.assign(CCN, {
         if(y<1) return zero('Restauration rapide cadres',1);
         if(y<=5){ const mo=y/10; return { mois:mo, expr:`${yf(c.mois)}/10`, doubleSiInaptP:true, lignes:[`Restauration rapide cadres (art. 13) : 1/10 de mois par année jusqu'à 5 ans = ${fmtMois(mo)} mois`] }; }
         const a2=Math.max(0,Math.min(y,10)-5), a3=Math.max(0,Math.min(y,15)-10), a4=Math.max(0,y-15);
-        const mo=0.2*y+a2/15+2*a3/15+3*a4/15;
-        return { mois:mo, expr:`0.2*${yf(c.mois)}+${fmtMois(a2)}/15+2*${fmtMois(a3)}/15+3*${fmtMois(a4)}/15`, doubleSiInaptP:true, lignes:[`Restauration rapide cadres (art. 13) : 2/10 de mois par année + 1/15 par année de 5 à 10 ans + 2/15 de 10 à 15 ans + 3/15 au-delà de 15 ans = ${fmtMois(mo)} mois`] };
+        let mo=0.2*y+a2/15+2*a3/15+3*a4/15; let expr=`0.2*${yf(c.mois)}+${fmtMois(a2)}/15+2*${fmtMois(a3)}/15+3*${fmtMois(a4)}/15`;
+        const lg=[`Restauration rapide cadres (art. 13) : 2/10 de mois par année + 1/15 par année de 5 à 10 ans + 2/15 de 10 à 15 ans + 3/15 au-delà de 15 ans = ${fmtMois(mo)} mois`];
+        if(c.eco && c.age!==null && c.age>=50 && y>=10){ mo*=1.15; expr=`(${expr})*1.15`; lg.push('Majoration de 15 % (licenciement économique, 50 ans et plus, 10 ans d\'ancienneté).'); }
+        return { mois:mo, expr, doubleSiInaptP:true, lignes:lg };
       }
       if(y<2) return zero('Restauration rapide',2);
-      const mo=0.1*y+(y>15?(2/15)*(y-10):y>10?(1/15)*(y-10):0);
-      return { mois:mo, expr:String(mo), doubleSiInaptP:true, lignes:[`Restauration rapide non-cadres : 1/10 de mois par année${y>10?` + ${y>15?'2/15':'1/15'} par année au-delà de 10 ans`:''} = ${fmtMois(mo)} mois`] };
+      let mo=0.1*y+(y>15?(2/15)*(y-10):y>10?(1/15)*(y-10):0);
+      const lg=[`Restauration rapide non-cadres : 1/10 de mois par année${y>10?` + ${y>15?'2/15':'1/15'} par année au-delà de 10 ans`:''} = ${fmtMois(mo)} mois`];
+      if(c.eco && c.age!==null && c.age>=50 && y>=10){ mo*=1.15; lg.push('Majoration de 15 % (licenciement économique, 50 ans et plus, 10 ans d\'ancienneté).'); }
+      return { mois:mo, expr:String(mo), doubleSiInaptP:true, lignes:lg };
     } },
   '3248': { ...base0, nom:'Métallurgie (IDCC 3248)', ageMajoration:true,
     categories:[['abcde','Groupes d\'emplois A à E'],['fghi','Groupes d\'emplois F à I']],
@@ -786,8 +799,15 @@ Object.assign(CCN, {
     } },
   '0016': { ...base0, nom:'Transports routiers (IDCC 0016)', ageMajoration:true,
     categories:[['ouvrier','Ouvriers'],['employe','Employés'],['etam','Techniciens et agents de maîtrise'],['cadre','Ingénieurs et cadres']],
-    notes:['Réduction possible de 20 % par année après 60 ans (non appliquée).','Cadres : indemnité complémentaire (2 / 3 / 4 mois après 10 / 20 / 30 ans) et échelonnement non modélisés.','Retraite : barèmes par catégorie non relevés.'],
+    notes:['Réduction possible de 20 % par année après 60 ans (non appliquée).','Cadres : indemnité complémentaire (2 / 3 / 4 mois après 10 / 20 / 30 ans) et échelonnement non modélisés.','Retraite (ouvriers, employés, techniciens et agents de maîtrise) : 1/2 mois après 10 ans, 1 mois après 15, 1,5 après 20, 2 après 25, 2,5 après 30, pour un salarié de 65 ans ou de 60 ans dans les cas prévus par le texte (inaptitude, retraite anticipée, retraite complémentaire liquidée) ; ces conditions d\'âge sont signalées, non vérifiées. Cadres : pourcentage de la rémunération annuelle avec minimums et plafonds de la grille garantie, non modélisé.'],
     conv(motif, c){
+      if(motif==='departRet'||motif==='miseRet'){
+        if(c.categorie==='cadre') return NM('Transports routiers, ingénieurs et cadres (annexe IV, art. 18) : indemnité en pourcentage de la rémunération annuelle réelle (4,5 % à 21 %) avec minimums et plafonds liés à la grille garantie par groupe, non modélisée.','Barème retraite des cadres non modélisé : seul le minimum légal est calculé.');
+        const y0=c.mois/12; const mo=palierMois(c.mois,[[10,0.5],[15,1],[20,1.5],[25,2],[30,2.5]]);
+        const l=[palierTxt('Transports routiers, indemnité de départ en retraite (art. 11 quinquies, 17 ter, 21 ter)',y0,mo)+' Rémunération moyenne des 12 derniers mois.'];
+        if(c.age!==null && c.age<60) l.push('Âge inférieur à 60 ans : l\'indemnité conventionnelle n\'est due que dans les cas de départ anticipé prévus par le texte (à vérifier).');
+        return { mois:mo, expr:String(mo), baseKey:'sr12', lignes:l };
+      }
       if(!['lic','inaptNP','inaptP','rc'].includes(motif)) return NM('Transports routiers : barème de retraite non modélisé.','Barème retraite non modélisé : seul le minimum légal est calculé.');
       const y=c.mois/12;
       if(c.categorie==='cadre'){
@@ -801,7 +821,7 @@ Object.assign(CCN, {
     } },
   '0573': { ...base0, nom:'Commerces de gros (IDCC 0573)', ageMajoration:true,
     categories:[['emp','Employés et ouvriers'],['am','Agents de maîtrise et techniciens'],['cadre','Cadres']],
-    notes:['Licenciement (art. 37 et avenants I et II) : seuil de 1 an d\'ancienneté ; employés 1/5 de mois par année + 2/15 au-delà de 10 ans ; agents de maîtrise 2/10 + 2/15 au-delà de 10 ans ; cadres 2/10 jusqu\'à 5 ans, puis 3/10 (années 1 à 9), 4/10 (10e à 19e), 5/10 (à partir de la 20e), plafond 12 mois, majoration de 15 % (50 à 55 ans) ou 20 % (55 ans et plus) avec 15 ans d\'ancienneté.','Non géré : régime spécifique des agents de maîtrise licenciés pour motif économique à 55 ans et plus avec 15 ans d\'ancienneté (barème réduit, plafond 6 mois, majoration 20 %, jamais inférieur au légal).','Retraite : barèmes relevés sur synthèse, à recouper sur le texte.'],
+    notes:['Licenciement (art. 37 et avenants I et II) : seuil de 1 an d\'ancienneté ; employés 1/5 de mois par année + 2/15 au-delà de 10 ans ; agents de maîtrise 2/10 + 2/15 au-delà de 10 ans ; cadres 2/10 jusqu\'à 5 ans, puis 3/10 (années 1 à 9), 4/10 (10e à 19e), 5/10 (à partir de la 20e), plafond 12 mois, majoration de 15 % (50 à 55 ans) ou 20 % (55 ans et plus) avec 15 ans d\'ancienneté.','Agents de maîtrise licenciés pour motif économique à 55 ans et plus avec 15 ans d\'ancienneté (case « motif économique ») : 2/10 jusqu\'à 9 ans, 3/10 ensuite, majoration de 20 %, plafond de 6 mois ; plafond lu majoration comprise comme le simulateur officiel (le texte peut se lire plafond puis majoration).','Retraite : barèmes relevés sur synthèse, à recouper sur le texte.'],
     conv(motif, c){
       const y=c.mois/12;
       if(motif==='departRet'||motif==='miseRet'){
@@ -825,6 +845,11 @@ Object.assign(CCN, {
         return { mois:mo, expr:String(mo), doubleSiInaptP:true, lignes:l };
       }
       if(c.categorie==='am'){
+        if(c.eco && c.age!==null && c.age>=55 && y>=15){
+          let mo=(0.2*Math.min(y,9)+0.3*Math.max(0,y-9))*1.2; const lg=[`Commerces de gros agents de maîtrise, licenciement économique à 55 ans et plus avec 15 ans (avenant II, art. 4) : 2/10 par année jusqu'à 9 ans, 3/10 ensuite, majoration de 20 % = ${fmtMois(mo)} mois`];
+          if(mo>6){ mo=6; lg.push('Plafond de 6 mois appliqué (majoration comprise, lecture du simulateur officiel).'); }
+          return { mois:mo, expr:String(mo), doubleSiInaptP:true, lignes:lg };
+        }
         const mo=0.2*y+(2/15)*Math.max(0,y-10);
         return { mois:mo, expr:String(mo), doubleSiInaptP:true, lignes:[`Commerces de gros agents de maîtrise (avenant II, art. 4) : 2/10 de mois par année + 2/15 au-delà de 10 ans = ${fmtMois(mo)} mois`] };
       }
@@ -894,26 +919,52 @@ Object.assign(CCN, {
       return renvoiLegal(motif,c,'Boulangerie');
     } },
   '1505': { ...base0, nom:'Commerce de détail alimentaire non spécialisé (IDCC 1505)',
-    notes:['Art. 21 : ¼ de mois par année jusqu\'à 10 ans, ⅓ au-delà, dès 8 mois : identique au légal.','Barème de départ en retraite non relevé.'],
-    conv(motif, c){ if(motif==='departRet') return NM('Commerce alimentaire non spécialisé : barème de départ en retraite non relevé.','Barème retraite non modélisé : seul le minimum légal est calculé.'); return renvoiLegal(motif,c,'Commerce alimentaire non spécialisé (art. 21)'); } },
-  '2216': { ...base0, nom:'Commerce de détail et de gros à prédominance alimentaire (IDCC 2216)', categories:[['nc','Ouvriers, employés et agents de maîtrise'],['cadre','Cadres']],
-    notes:['Cadres : tranches 3/10, 4/10, 5/10, plafond 12 mois, + 1/3 de mois par année au-delà de 40 ans d\'ancienneté.','Retraite : non modélisée.'],
+    notes:['Art. 21 : ¼ de mois par année jusqu\'à 10 ans, ⅓ au-delà, dès 8 mois : identique au légal.','Retraite (art. 23.4) : départ volontaire après 2 ans d\'ancienneté, 1/10 de mois par année, plafond 3 mois ; mise à la retraite au moins égale à l\'indemnité légale de licenciement.'],
     conv(motif, c){
-      if(motif==='departRet'||motif==='miseRet') return NM('Grande distribution alimentaire : barème de retraite non relevé.','Barème retraite non modélisé : seul le minimum légal est calculé.');
-      const y=c.mois/12; if(y<1) return zero('Grande distribution alimentaire',1);
-      if(c.categorie==='cadre'){
-        let mo = y<=5 ? 0.2*y : 0.3*Math.min(y,10)+0.4*clamp(y,10,20)+0.5*Math.max(0,y-20); const l=[`Grande distribution cadres : ${y<=5?'1/5 par année':'3/10, 4/10 puis 5/10 par tranches'} = ${fmtMois(mo)} mois`];
-        if(mo>12){ mo=12; l.push('Plafond de 12 mois appliqué.'); }
-        if(y>40){ mo+=(1/3)*(y-40); l.push('Supplément de 1/3 de mois par année au-delà de 40 ans.'); }
+      if(motif==='departRet'){
+        if(c.mois<24) return { mois:0, expr:'0', lignes:['Commerce alimentaire non spécialisé (art. 23.4.1) : moins de 2 ans d\'ancienneté, pas d\'indemnité conventionnelle de départ.'] };
+        let mo=c.mois/120; const l=[`Commerce alimentaire non spécialisé (art. 23.4.1) : 1/10 de mois par année × ${fmtMois(c.mois/12)} an(s) = ${fmtMois(mo)} mois`];
+        if(mo>3){ mo=3; l.push('Plafond de 3 mois appliqué.'); }
         return { mois:mo, expr:String(mo), lignes:l };
       }
-      const mo=0.2*y+(2/15)*Math.max(0,y-10);
-      return { mois:mo, expr:`0.2*${yf(c.mois)}`+(y>10?`+2/15*${yf(c.mois-120)}`:''), lignes:[`Grande distribution non-cadres : 1/5 de mois par année + 2/15 au-delà de 10 ans = ${fmtMois(mo)} mois`] };
+      return renvoiLegal(motif,c,'Commerce alimentaire non spécialisé (art. 21 et 23.4.2)'); } },
+  '2216': { ...base0, nom:'Commerce de détail et de gros à prédominance alimentaire (IDCC 2216)', categories:[['nc','Ouvriers, employés et agents de maîtrise'],['cadre','Cadres']],
+    notes:['Licenciement (annexes I à III, art. 7) : après 8 mois d\'ancienneté, ouvriers, employés et agents de maîtrise 1/4 de mois par année jusqu\'à 10 ans puis 1/3 ; cadres 1/4 jusqu\'à 5 ans, puis 3/10 jusqu\'à 10 ans, 4/10 de 10 à 20 ans, 5/10 au-delà, plafond de 12 mois, plus 1/3 de mois par année au-delà de 40 ans.','Licenciement économique (case « motif économique ») : majoration de 20 % à plus de 50 ans (cadres : 50 ans et plus, légal ou majoration, le plus favorable). Les exclusions de la majoration (reclassement aidé, allocation chômage jusqu\'à la retraite à taux plein, préretraite, retraite sans abattement) ne sont pas vérifiées.','Retraite (art. 8) : départ volontaire des ouvriers, employés et agents de maîtrise avec 10 ans d\'ancienneté, 2/20 de mois par année jusqu\'à 10 ans et 3/20 au-delà, plafond 4 mois ; cadres avec 5 ans, 2/20 jusqu\'à 10 ans, 3/20 de 10 à 20 ans, 5/20 au-delà, plafond 6 mois ; mise à la retraite : au moins l\'indemnité de licenciement de l\'article 7. Base : salaire « plein tarif » (plus favorable des moyennes 12 et 3 mois).'],
+    conv(motif, c){
+      const y=c.mois/12; const cad=c.categorie==='cadre';
+      if(motif==='departRet'){
+        if(y<(cad?5:10)) return { mois:0, expr:'0', lignes:[`Grande distribution alimentaire (art. 8.2) : ${cad?'5':'10'} ans d'ancienneté requis, pas d'allocation conventionnelle de départ.`] };
+        let mo, cap;
+        if(cad){ mo=0.1*Math.min(y,10)+0.15*clamp(y,10,20)+0.25*Math.max(0,y-20); cap=6; }
+        else { mo=0.1*Math.min(y,10)+0.15*Math.max(0,y-10); cap=4; }
+        const l=[`Grande distribution alimentaire, départ en retraite (annexe ${cad?'III':'I ou II'}, art. 8.2) : 2/20 de mois par année jusqu'à 10 ans${cad?', 3/20 de 10 à 20 ans, 5/20 au-delà':', 3/20 au-delà'} = ${fmtMois(mo)} mois`];
+        if(mo>cap){ mo=cap; l.push(`Plafond de ${cap} mois appliqué.`); }
+        return { mois:mo, expr:String(mo), lignes:l };
+      }
+      if(c.mois<8) return { mois:0, expr:'0', lignes:['Grande distribution alimentaire : moins de 8 mois d\'ancienneté, pas d\'indemnité.'] };
+      const eco = motif==='lic' && c.eco;
+      let mo, l;
+      if(cad){
+        mo = y<=5 ? 0.25*y : 0.3*Math.min(y,10)+0.4*clamp(y,10,20)+0.5*Math.max(0,y-20); l=[`Grande distribution cadres (annexe III, art. 7) : ${y<=5?'1/4 par année':'3/10, 4/10 puis 5/10 par tranches'} = ${fmtMois(mo)} mois`];
+        if(mo>12){ mo=12; l.push('Plafond de 12 mois appliqué.'); }
+        if(y>40){ mo+=(1/3)*(y-40); l.push('Supplément de 1/3 de mois par année au-delà de 40 ans.'); }
+        if(eco && c.age!==null && c.age>=50){ mo*=1.2; l.push('Majoration de 20 % (licenciement économique, 50 ans et plus).'); }
+      } else {
+        mo=0.25*Math.min(y,10)+(1/3)*Math.max(0,y-10); l=[`Grande distribution ouvriers, employés, agents de maîtrise (annexes I et II, art. 7) : 1/4 de mois par année jusqu'à 10 ans${y>10?', puis 1/3':''} = ${fmtMois(mo)} mois`];
+        if(eco && c.age!==null && c.age>50){ mo*=1.2; l.push('Majoration de 20 % (licenciement économique, plus de 50 ans).'); }
+      }
+      if(motif==='miseRet') l.unshift('Mise à la retraite (art. 8.3) : au moins l\'indemnité de licenciement de l\'article 7.');
+      return { mois:mo, expr:String(mo), doubleSiInaptP:motif!=='miseRet', lignes:l };
     } },
   '2098': { ...base0, nom:'Prestataires de services du secteur tertiaire (IDCC 2098)', ageMajoration:true, categories:[['nc','Non-cadres'],['cadre','Cadres']],
-    notes:['Cadres (avenant cadres, art. 3.1) : 2 ans d\'ancienneté, 3/10, 4/10, 5/10 puis 6/10 de mois par année selon les tranches 0-5, 5-10, 10-15 et au-delà de 15 ans ; majoration de 10 % (50 à 55 ans) ou 25 % (55 ans et plus, seuil de 55 ans lu comme le simulateur officiel) ; plafond de 18 mois majoration comprise.','Seuil de 2 ans retenu pour les non-cadres (tableaux de la synthèse) ; retraite : barème et abattement de 50 % ambigus, non modélisés.'],
+    notes:['Cadres (avenant cadres, art. 3.1) : 2 ans d\'ancienneté, 3/10, 4/10, 5/10 puis 6/10 de mois par année selon les tranches 0-5, 5-10, 10-15 et au-delà de 15 ans ; majoration de 10 % (50 à 55 ans) ou 25 % (55 ans et plus, seuil de 55 ans lu comme le simulateur officiel) ; plafond de 18 mois majoration comprise.','Seuil de 2 ans retenu pour les non-cadres (tableaux de la synthèse).','Retraite : seuls les cadres ont une allocation conventionnelle (avenant cadres, art. 3.2 : ½ mois de 2 à 5 ans, 1 mois dès 5 ans, puis 2, 3, 4, 5 et 6 mois dès 10, 15, 20, 25 et 30 ans ; lue par paliers, le texte parlant d\'un calcul proportionnel pour chaque période entamée). Non-cadres : minimum légal. Conditions de retraite à taux plein non vérifiées.'],
     conv(motif, c){
-      if(motif==='departRet'||motif==='miseRet') return NM('Prestataires tertiaire : barème de retraite ambigu, non modélisé.','Barème retraite non modélisé : seul le minimum légal est calculé.');
+      if(motif==='departRet'||motif==='miseRet'){
+        if(c.categorie!=='cadre') return renvoiLegal(motif,c,'Prestataires tertiaire non-cadres (aucune allocation conventionnelle de départ relevée dans la convention)');
+        const y0=c.mois/12; if(y0<2) return zero('Prestataires tertiaire cadres (avenant cadres, art. 3.2)',2);
+        const mo=palierMois(c.mois,[[2,0.5],[5,1],[10,2],[15,3],[20,4],[25,5],[30,6]]);
+        return { mois:mo, expr:String(mo), baseKey:'sr12', lignes:[palierTxt('Prestataires tertiaire cadres, allocation de départ à la retraite (avenant cadres, art. 3.2)',y0,mo)+' Rémunération des 12 derniers mois.'] };
+      }
       const y=c.mois/12; if(y<2) return zero('Prestataires tertiaire',2);
       let mo, l;
       if(c.categorie==='cadre'){
@@ -937,15 +988,18 @@ Object.assign(CCN, {
     } },
   '1996': { ...base0, nom:'Pharmacie d\'officine (IDCC 1996)',
     categories:[['nc','Non-cadres'],['cadre','Cadres']],
-    notes:['Départ volontaire : paliers 10/15/20/25/30 ans.','Licenciement (art. 21 et annexe cadres, art. 6) : non-cadres 1/4 de mois par année jusqu\'à 10 ans puis 3,34/10 à compter de la 11e année ; cadres 1/4 sous 5 ans, puis 3/10 jusqu\'à 15 ans et 5/10 à compter de la 16e année. Pour les cadres de 10 ans et plus licenciés pour motif économique, 3,34/10 de la 11e à la 15e année : non géré (motif non-économique retenu). Ancienneté appréciée à la fin du préavis dans le texte : date de sortie saisie ici.','Mise à la retraite : « au moins l\'indemnité de licenciement légale ou conventionnelle » : non modélisée (légal appliqué).'],
+    notes:['Départ volontaire : paliers 10/15/20/25/30 ans.','Licenciement (art. 21 et annexe cadres, art. 6) : non-cadres 1/4 de mois par année jusqu\'à 10 ans puis 3,34/10 à compter de la 11e année ; cadres 1/4 sous 5 ans, puis 3/10 jusqu\'à 15 ans et 5/10 à compter de la 16e année. Cadres de 5 ans et plus licenciés pour motif économique : 3/10 jusqu\'à 10 ans, 3,34/10 de la 11e à la 15e année, 5/10 ensuite (case « motif économique »). Ancienneté appréciée à la fin du préavis dans le texte : date de sortie saisie ici.','Mise à la retraite : « au moins l\'indemnité de licenciement légale ou conventionnelle » : non modélisée (légal appliqué).'],
     conv(motif, c){
       if(motif==='departRet'){ const mo=palierMois(c.mois,[[10,0.5],[15,1],[20,1.5],[25,2],[30,2.5]]); return { mois:mo, expr:String(mo), lignes:[palierTxt('Pharmacie départ retraite',c.mois/12,mo)] }; }
       if(motif==='miseRet') return NM('Pharmacie d\'officine : mise à la retraite non modélisée.','Mise à la retraite non modélisée : seul le minimum légal est calculé.');
       if(c.mois<8) return { mois:0, expr:'0', lignes:['Pharmacie d\'officine (art. 21) : moins de 8 mois d\'ancienneté, pas d\'indemnité.'] };
       const y=c.mois/12; let mo, expr, l;
-      if(c.categorie==='cadre' && y>=5){
+      if(c.categorie==='cadre' && y>=5 && c.eco){
+        mo=0.3*Math.min(y,10)+0.334*clamp(y,10,15)+0.5*Math.max(0,y-15); expr=String(mo);
+        l=`Pharmacie cadres de 5 ans et plus, licenciement économique (annexe, art. 6 a) : 3/10 de mois par année jusqu'à 10 ans${y>10?', 3,34/10 de la 11e à la 15e année':''}${y>15?', 5/10 à compter de la 16e':''} = ${fmtMois(mo)} mois`;
+      } else if(c.categorie==='cadre' && y>=5){
         mo=0.3*Math.min(y,15)+0.5*Math.max(0,y-15); expr=y<=15?`0.3*${yf(c.mois)}`:`0.3*15+0.5*${yf(c.mois-180)}`;
-        l=`Pharmacie cadres de 5 ans et plus (annexe, art. 6) : 3/10 de mois par année jusqu'à 15 ans${y>15?', 5/10 à compter de la 16e année':''} = ${fmtMois(mo)} mois`;
+        l=`Pharmacie cadres de 5 ans et plus (annexe, art. 6 b) : 3/10 de mois par année jusqu'à 15 ans${y>15?', 5/10 à compter de la 16e année':''} = ${fmtMois(mo)} mois`;
       } else if(c.categorie==='cadre'){
         mo=y/4; expr=`${yf(c.mois)}/4`; l=`Pharmacie cadres de moins de 5 ans (annexe, art. 6) : ${fmtMois(y)} an(s) × 1/4 = ${fmtMois(mo)} mois`;
       } else {
@@ -988,8 +1042,8 @@ const CCN_META = {
  '0016':{rang:10,court:'Transports routiers',statut:'partielle'}, '0573':{rang:11,court:'Commerces de gros',statut:'modelisee'}, '1527':{rang:12,court:'Immobilier',statut:'partielle'},
  '1043':{rang:13,court:'Gardiens, concierges',statut:'partielle'}, '1147':{rang:14,court:'Cabinets médicaux',statut:'modelisee'}, '2596':{rang:15,court:'Coiffure',statut:'partielle'},
  '2511':{rang:16,court:'Sport',statut:'modelisee'}, '1517':{rang:17,court:'Commerces de détail non alimentaires',statut:'modelisee'}, '0843':{rang:18,court:'Boulangerie-pâtisserie',statut:'partielle'},
- '1505':{rang:19,court:'Commerce alimentaire non spécialisé',statut:'partielle'}, '1597':{rang:20,court:'Bâtiment ouvriers > 10 sal.',statut:'partielle'}, '1619':{rang:21,court:'Cabinets dentaires',statut:'legal'},
- '2216':{rang:22,court:'Grande distribution alimentaire',statut:'partielle'}, '2098':{rang:23,court:'Prestataires tertiaire',statut:'partielle'}, '0787':{rang:24,court:'Experts-comptables',statut:'partielle'},
+ '1505':{rang:19,court:'Commerce alimentaire non spécialisé',statut:'modelisee'}, '1597':{rang:20,court:'Bâtiment ouvriers > 10 sal.',statut:'partielle'}, '1619':{rang:21,court:'Cabinets dentaires',statut:'legal'},
+ '2216':{rang:22,court:'Grande distribution alimentaire',statut:'modelisee'}, '2098':{rang:23,court:'Prestataires tertiaire',statut:'partielle'}, '0787':{rang:24,court:'Experts-comptables',statut:'partielle'},
  '1996':{rang:25,court:'Pharmacie d\'officine',statut:'partielle'}, '1483':{rang:26,court:'Habillement et textiles',statut:'partielle'}, '7018':{rang:27,court:'Entreprises du paysage',statut:'legal'},
  '1518':{rang:28,court:'Animation',statut:'partielle'}, '3127':{rang:29,court:'Services à la personne',statut:'legal'}, '3043':{rang:30,court:'Propreté',statut:'legal'},
  '0045':{rang:null,court:'Caoutchouc',statut:'modelisee'}
@@ -1075,7 +1129,7 @@ function compute(inp){
 
   /* 4. Convention */
   if(ccn){
-    const ctx={ mois, sr, sr12, sr3, age: out.age, categorie: inp.categorie };
+    const ctx={ mois, sr, sr12, sr3, age: out.age, categorie: inp.categorie, eco: !!inp.eco && motif==='lic' };
     const r = ccn.conv(motif, ctx);
     const baseKey = (r && r.baseKey) || (ccn.basis==='sr12'?'sr12':'sr');
     const base = baseKey==='sr12' ? sr12 : baseKey==='sr3' ? sr3 : sr;
@@ -1499,7 +1553,7 @@ function buildPdf(JsPDF, d){
   if(sel.has('ident')){
     section('Salarié et convention');
     kv('Salarié', nomComplet||'-'); if(S.emploi) kv('Emploi', S.emploi); if(S.statut) kv('Statut', S.statut); if(S.classif) kv('Classification', S.classif);
-    kv('Motif de rupture', MOTIFS[S.motif]||'');
+    kv('Motif de rupture', (MOTIFS[S.motif]||'')+(S.motif==='lic'&&S.eco?' - motif économique':''));
     kv('Convention collective', S.ccn==='none' ? 'Code du travail seul (sans convention)' : ccnNom);
     if(d.categorieLabel) kv('Catégorie', d.categorieLabel);
     if(d.ageTxt) kv('Âge', d.ageTxt);
@@ -1735,6 +1789,26 @@ const TESTS = [
     inp:{motif:'lic',ccn:'2098',categorie:'cadre',age:40,entree:'2018-01-01',sortie:'2025-12-31',sr12:3000,sr3:3000}, mois:96, legal:6000, conv:8100, retenu:8100, calcul:'3/10 × 5 + 4/10 × 3 = 2,7 mois × 3 000' },
   { nom:'Top 30 — Cabinets médicaux (1147), licenciement 15 ans : conventionnel < légal',
     inp:{motif:'lic',ccn:'1147',entree:'2011-01-01',sortie:'2025-12-31',sr12:3000,sr3:3000}, mois:180, legal:12500, conv:11000, retenu:12500, calcul:'1/5 × 15 + 2/15 × 5 = 3,6667 mois × 3 000' },
+  { nom:'Restauration rapide (1501), cadre, licenciement économique à 58 ans, 14 ans, SR 2 500 € : majoration de 15 %',
+    inp:{motif:'lic',eco:true,ccn:'1501',categorie:'cadre',age:58,entree:'2012-01-01',sortie:'2025-12-31',sr12:2500,sr3:2500}, mois:168, legal:9583.33, conv:10541.67, retenu:10541.67, calcul:'(2/10 × 14 + 5/15 + 2/15 × 4) × 1,15 = 4,2167 mois × 2 500' },
+  { nom:'Pharmacie (1996), cadre, licenciement économique, 12 ans, SR 3 000 €',
+    inp:{motif:'lic',eco:true,ccn:'1996',categorie:'cadre',age:40,entree:'2014-01-01',sortie:'2025-12-31',sr12:3000,sr3:3000}, mois:144, legal:9500, conv:11004, retenu:11004, calcul:'3/10 × 10 + 3,34/10 × 2 = 3,668 mois × 3 000' },
+  { nom:'Grande distribution alimentaire (2216), employé, licenciement économique à 55 ans, 10 ans, SR 2 000 €',
+    inp:{motif:'lic',eco:true,ccn:'2216',categorie:'nc',age:55,entree:'2016-01-01',sortie:'2025-12-31',sr12:2000,sr3:2000}, mois:120, legal:5000, conv:6000, retenu:6000, calcul:'1/4 × 10 × 1,2 = 3 mois × 2 000' },
+  { nom:'Grande distribution alimentaire (2216), cadre, 8 ans, SR 3 000 €',
+    inp:{motif:'lic',ccn:'2216',categorie:'cadre',age:40,entree:'2018-01-01',sortie:'2025-12-31',sr12:3000,sr3:3000}, mois:96, legal:6000, conv:7200, retenu:7200, calcul:'3/10 × 8 = 2,4 mois × 3 000' },
+  { nom:'Commerces de gros (0573), agent de maîtrise, licenciement économique à 58 ans, 15 ans, SR 2 500 €',
+    inp:{motif:'lic',eco:true,ccn:'0573',categorie:'am',age:58,entree:'2011-01-01',sortie:'2025-12-31',sr12:2500,sr3:2500}, mois:180, legal:10416.67, conv:10800, retenu:10800, calcul:'(2/10 × 9 + 3/10 × 6) × 1,2 = 4,32 mois × 2 500' },
+  { nom:'Commerce alimentaire non spécialisé (1505), départ à la retraite, 20 ans, SR 2 400 €',
+    inp:{motif:'departRet',ccn:'1505',entree:'2006-01-01',sortie:'2025-12-31',sr12:2400,sr3:2400}, mois:240, legal:3600, conv:4800, retenu:4800, calcul:'1/10 × 20 = 2 mois × 2 400' },
+  { nom:'Grande distribution alimentaire (2216), départ à la retraite d\'un employé, 25 ans, SR 2 000 €',
+    inp:{motif:'departRet',ccn:'2216',categorie:'nc',entree:'2001-01-01',sortie:'2025-12-31',sr12:2000,sr3:2000}, mois:300, legal:3000, conv:6500, retenu:6500, calcul:'2/20 × 10 + 3/20 × 15 = 3,25 mois × 2 000' },
+  { nom:'Grande distribution alimentaire (2216), départ à la retraite d\'un cadre, 30 ans, SR 3 000 €',
+    inp:{motif:'departRet',ccn:'2216',categorie:'cadre',entree:'1996-01-01',sortie:'2025-12-31',sr12:3000,sr3:3000}, mois:360, legal:6000, conv:15000, retenu:15000, calcul:'2/20 × 10 + 3/20 × 10 + 5/20 × 10 = 5 mois × 3 000' },
+  { nom:'Transports routiers (0016), départ à la retraite d\'un ouvrier de 63 ans, 25 ans, SR 2 400 €',
+    inp:{motif:'departRet',ccn:'0016',categorie:'ouvrier',age:63,entree:'2001-01-01',sortie:'2025-12-31',sr12:2400,sr3:2400}, mois:300, legal:3600, conv:4800, retenu:4800, calcul:'2 mois après 25 ans × 2 400' },
+  { nom:'Prestataires tertiaire (2098), départ à la retraite d\'un cadre, 12 ans, SR 4 000 €',
+    inp:{motif:'departRet',ccn:'2098',categorie:'cadre',age:63,entree:'2014-01-01',sortie:'2025-12-31',sr12:4000,sr3:4000}, mois:144, legal:2000, conv:8000, retenu:8000, calcul:'2 mois après 10 ans × 4 000' },
   { nom:'Gardiens (1043), licenciement 10 ans, SR 2 000 € : conventionnel < légal',
     inp:{motif:'lic',ccn:'1043',entree:'2016-01-01',sortie:'2025-12-31',sr12:2000,sr3:2000}, mois:120, legal:5000, conv:4800, retenu:5000, calcul:'1/5 × 10 + 2/15 × 3 = 2,4 mois × 2 000' },
   { nom:'Gardiens (1043), licenciement 25 ans, SR 2 500 € (recoupé avec le simulateur officiel)',
@@ -1772,7 +1846,7 @@ const TESTS = [
 if(typeof module!=='undefined') module.exports={ TESTS };
 
 /* Recoupement automatique avec le simulateur « Indemnité de licenciement » du Code du travail numérique (généré par compare3.js + gen-croisement.js, rejouable). */
-const CROISEMENT = {"retraite":{"n":68,"ko":0},"date":"21/11/2026","version":"@socialgouv/modeles-social 4.253.1","grille":"ancienneté de 1 à 32 ans (années pleines et demi-années), âge de 40 et 58 ans, salaire de référence de 2 500 €, chaque catégorie proposée, réponse « non » aux autres questions (sauf ancienneté de cadre : « oui »)","data":{"1043":{"n":24,"st":"neutre","ex":[]},"1090":{"n":24,"st":"neutre","ex":[]},"1147":{"n":24,"st":"neutre","ex":[]},"1483":{"n":48,"st":"neutre","ex":[]},"1486":{"n":48,"st":"concordant","ex":[]},"1501":{"n":48,"st":"assume","ex":[{"an":8,"age":40,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":8,"age":58,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":10,"age":40,"cat":"cadre","moi":6250,"off":7500,"nm":false},{"an":10,"age":58,"cat":"cadre","moi":6250,"off":7500,"nm":false},{"an":12,"age":40,"cat":"cadre","moi":7916.67,"off":8500,"nm":false},{"an":12,"age":58,"cat":"cadre","moi":7916.67,"off":8500,"nm":false}],"note":"Cadres : le moteur suit le texte de l'article 13 (2/15 de mois par année de 10 à 15 ans). Le simulateur officiel applique la majoration de 2/15 aux années de 5 à 10 ans et la cumule dès 5 ans (anomalie probable du modèle publicodes). À signaler au Code du travail numérique."},"1505":{"n":24,"st":"concordant","ex":[]},"1517":{"n":24,"st":"concordant","ex":[]},"1518":{"n":24,"st":"concordant","ex":[]},"1527":{"n":24,"st":"neutre","ex":[]},"1596":{"n":24,"st":"neutre","ex":[]},"1597":{"n":24,"st":"neutre","ex":[]},"1619":{"n":0,"st":"non_couvert","ex":[]},"1979":{"n":24,"st":"neutre","ex":[]},"1996":{"n":48,"st":"concordant","ex":[]},"2098":{"n":48,"st":"concordant","ex":[]},"2216":{"n":72,"st":"neutre","ex":[]},"2420":{"n":0,"st":"non_couvert","ex":[]},"2511":{"n":24,"st":"neutre","ex":[]},"2596":{"n":120,"st":"concordant","ex":[]},"2609":{"n":24,"st":"concordant","ex":[]},"3043":{"n":24,"st":"neutre","ex":[]},"3127":{"n":24,"st":"neutre","ex":[]},"3248":{"n":48,"st":"concordant","ex":[]},"7018":{"n":0,"st":"non_couvert","ex":[]},"7024":{"n":0,"st":"non_couvert","ex":[]},"0016":{"n":96,"st":"assume","ex":[{"an":3,"age":40,"cat":"cadre","moi":3000,"off":1875,"nm":false},{"an":3,"age":58,"cat":"cadre","moi":3000,"off":1875,"nm":false}],"note":"Cadres à exactement 3 ans d'ancienneté : le texte (art. 17, annexe IV) exige « au moins 3 années de présence » et le moteur applique 4/10 par année ; le simulateur officiel exige plus de 3 ans."},"0573":{"n":72,"st":"neutre","ex":[]},"0843":{"n":24,"st":"neutre","ex":[]},"0787":{"n":24,"st":"concordant","ex":[]},"0045":{"n":0,"st":"non_couvert","ex":[]}}};
+const CROISEMENT = {"retraite":{"n":68,"ko":0},"date":"21/11/2026","version":"@socialgouv/modeles-social 4.253.1","grille":"ancienneté de 1 à 32 ans (années pleines et demi-années), âge de 40 et 58 ans, salaire de référence de 2 500 €, chaque catégorie proposée, réponse « non » aux autres questions (sauf ancienneté de cadre : « oui »)","data":{"1043":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1090":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1147":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1483":{"n":48,"st":"neutre","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"1486":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"1501":{"n":48,"st":"assume","ex":[{"an":8,"age":40,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":8,"age":58,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":10,"age":40,"cat":"cadre","moi":6250,"off":7500,"nm":false},{"an":10,"age":58,"cat":"cadre","moi":6250,"off":7500,"nm":false},{"an":12,"age":40,"cat":"cadre","moi":7916.67,"off":8500,"nm":false},{"an":12,"age":58,"cat":"cadre","moi":7916.67,"off":8500,"nm":false}],"note":"Cadres : le moteur suit le texte de l'article 13 (2/15 de mois par année de 10 à 15 ans). Le simulateur officiel applique la majoration de 2/15 aux années de 5 à 10 ans et la cumule dès 5 ans (anomalie probable du modèle publicodes). À signaler au Code du travail numérique.","eco":{"n":48,"ko":8,"ex":[{"an":8,"age":40,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":8,"age":58,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":10,"age":40,"cat":"cadre","moi":6250,"off":7500,"nm":false},{"an":10,"age":58,"cat":"cadre","moi":6708.33,"off":7500,"nm":false}]}},"1505":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1517":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1518":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1527":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1596":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1597":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1619":{"n":0,"st":"non_couvert","ex":[]},"1979":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1996":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"2098":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"2216":{"n":72,"st":"concordant","ex":[],"eco":{"n":72,"ko":0,"ex":[]}},"2420":{"n":0,"st":"non_couvert","ex":[]},"2511":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"2596":{"n":120,"st":"concordant","ex":[],"eco":{"n":120,"ko":0,"ex":[]}},"2609":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"3043":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"3127":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"3248":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"7018":{"n":0,"st":"non_couvert","ex":[]},"7024":{"n":0,"st":"non_couvert","ex":[]},"0016":{"n":96,"st":"assume","ex":[{"an":3,"age":40,"cat":"cadre","moi":3000,"off":1875,"nm":false},{"an":3,"age":58,"cat":"cadre","moi":3000,"off":1875,"nm":false}],"note":"Cadres à exactement 3 ans d'ancienneté : le texte (art. 17, annexe IV) exige « au moins 3 années de présence » et le moteur applique 4/10 par année ; le simulateur officiel exige plus de 3 ans.","eco":{"n":96,"ko":2,"ex":[{"an":3,"age":40,"cat":"cadre","moi":3000,"off":1875,"nm":false},{"an":3,"age":58,"cat":"cadre","moi":3000,"off":1875,"nm":false}]}},"0573":{"n":72,"st":"neutre","ex":[],"eco":{"n":72,"ko":0,"ex":[]}},"0843":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"0787":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"0045":{"n":0,"st":"non_couvert","ex":[]}}};
 const CDTN_REFS = {"1043":[["Article 16","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000034978460"]],"1090":[["Article 1.13","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000037958848"],["Article 2.13","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000037964084"]],"1147":[["Article 25","https://www.legifrance.gouv.fr/conv_coll/id/KALIARTI000027745280/"],["Article 13","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005856073"]],"1483":[["Article 17, Chapitre Ier","https://www.legifrance.gouv.fr/conv_coll/id/KALIARTI000022017249/"],["Article 18, Chapitre Ier","https://www.legifrance.gouv.fr/conv_coll/id/KALIARTI000022017246/"],["Article 31","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005840280"],["Article 11, Chapitre II","https://www.legifrance.gouv.fr/conv_coll/id/KALIARTI000022017243/"]],"1486":[["Article 23 de l’Annexe IV. Enquêteurs. Accord du 16 décembre 1991","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000047651985"],["Article 24 de l’Annexe IV. Enquêteurs. Accord du 16 décembre 1991","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005851322"],["Article 3.5","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000047513827"],["Article 11.6","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000047513898"],["Article 4.5 Avenant n°46","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000047513839"]],"1501":[["Article 13","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005833468"]],"1505":[["Article 21","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000043562753"],["Article 42.5.2","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000043562840"]],"1517":[["Article 4, Chapitre VI","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000046093607"]],"1518":[["Article 4.4.3","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000044530995"],["Article 6.3.4","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000027717742"]],"1527":[["Article 33","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000042096651"],["Article 23","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000042096676"],["Article 41","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000042096630"],["Article 37.3.1","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000042096638"]],"1596":[["Article 10.3","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005778355"],["Article 10.4","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005778357"],["Article 10.5","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005778358"]],"1597":[["Article 10.3","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005776857"],["Article 10.4","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005776858"],["Article 10.5","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005776860"]],"1979":[["Article 32","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005826298"]],"1996":[["Article 21","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000038106393"],["Article 11","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000038106382"],["Article 6 de l'annexe Cadres","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000041761357"]],"2098":[["Article 3.1 de l’Avenant cadres","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005850668"]],"2216":[["Article 7 de l’Annexe I Employés et ouvriers, personnel de livraison","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000041517490"],["Article 6 de l’Annexe I Employés et ouvriers, personnel de livraison","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000041517485"],["Article 3.13","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000039111891"],["Article 7 de l’Annexe II relative aux agents de maîtrise et techniciens","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000041517524"],["Article 6 de l’Annexe II relative aux agents de maîtrise et techniciens","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000041517519"],["Article 7 de l’Annexe III Cadres","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000041517561"],["Article 6 de l’Annexe III Cadres","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000041517556"]],"2511":[["Article 4.4.3.3","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000042110557"],["Article 7.1.2","https://www.legifrance.gouv.fr/conv_coll/id/KALIARTI000042110596/"]],"2596":[["Article 7.5.1","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000018563854"]],"2609":[["Article 8.4","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000018773860"],["Article 8.5","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000018773861"],["Article 8.13","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000018773880"],["Article 8.7","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000018773870"]],"3043":[["Article 4.11.3","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000027172424"],["Article 4.2","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000027172405"]],"3127":[["Partie II, Chapitre 4, section 1, article 1.2","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000027034201"]],"3248":[["Article 75.3.1.2","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000046314538"]],"0016":[["Article 14 de l’Accord du 27 février 1951 relatif aux employés Annexe II","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005849373"],["Article 18 de l’Accord du 30 mars 1951 relatif aux techniciens et agents de maîtrise Annexe III","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005849264"],["Article 17 de l’Accord du 30 octobre 1951 relatif aux ingénieurs et cadres Annexe IV","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005849570"]],"0573":[["Article 37","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000026802009"],["Article 4 de l’Avenant II relatif aux agents de maîtrise et techniciens, secteur alimentaire","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000026802068"],["Article 4 de l’Avenant II relatif aux agents de maîtrise et techniciens, secteur non alimentaire","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000026802084"],["Article 4 de l’Avenant I relatif aux cadres","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000026802057"]],"0843":[["Article 33","https://www.legifrance.gouv.fr/conv_coll/id/KALIARTI000005873155/"]],"0787":[["Article 6.2.1","https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000051345600"]]};
 
 
@@ -1837,11 +1911,8 @@ const RULES_DOC = [
    sources:[['Fédération Syntec — Rupture du contrat de travail (art. 4.5, 4.6, 4.8)','https://www.syntec.fr/convention-collective/resiliation-du-contrat-de-travail/'],['Fédération Syntec — Conditions d\'engagement (art. 3.7 Ancienneté)','https://www.syntec.fr/convention-collective/conditions-d-engagement/#anciennete'],['Fédération Syntec — la convention collective','https://www.syntec.fr/convention-collective/']]
  },
  { id:'1596', titre:'Bâtiment ouvriers (jusqu\'à 10 salariés) — IDCC 1596', provisoire:true,
-   items:[
-    ['Licenciement / rupture conventionnelle','De 2 à 5 ans : 1/10 de mois par année. À partir de 5 ans : 3/20 par année. Au-delà de 15 ans : + 1/20 par année. Majoration de 10 % au-delà de 55 ans.'],
-    ['Retraite','« Indemnité de fin de carrière » (légale + complément) : complément non modélisé.']
-   ],
-   ambigu:['Seuil d\'ancienneté : 1 an ou 2 ans selon la page.','Cas de la fin de chantier non traité.'],
+   items:[['Licenciement / rupture conventionnelle (art. 10.3)','De 2 à 5 ans : 1/10 de mois par année. À partir de 5 ans : 3/20 par année. Au-delà de 15 ans : + 1/20 par année. Majoration de 10 % à plus de 55 ans. Due à l\'ouvrier qui ne remplit pas les conditions d\'une pension à taux plein.'],['Retraite','L\'indemnité conventionnelle de départ est servie par la CNPO (art. 15 du règlement du régime national de prévoyance), pas par l\'employeur : seul le minimum légal est calculé.']],
+   ambigu:['Seuil d\'ancienneté : 1 an ou 2 ans selon la page.','Cas de la fin de chantier non traité.','Condition de pension à taux plein non vérifiée.'],
    sources:[['LégiSocial — IDCC 1596','https://www.legisocial.fr/conventions-collectives-nationales/1596-ouvriers-du-batiment-10-salaries/licenciement-indemnite-salaire-reference.html']]
  },
  { id:'1979', titre:'Hôtels, cafés, restaurants (HCR) — IDCC 1979', provisoire:true,
@@ -1871,32 +1942,20 @@ RULES_DOC.push(
    ambigu:['Source secondaire (advizexperts) : bornes (« plus de 30 ans » : ≥ 30 ou > 30) et base de salaire à confirmer.','Seuil conventionnel avant 10 ans non précisé.'],
    sources:[['advizexperts — IDCC 7024','https://advizexperts.fr/convention-collective/convention-collective-production-agricole-cuma-idcc-7024/'],['LégiSocial — 7024',LS+'7024-production-agricole-et-cuma/']] },
  { id:'1501', titre:'Restauration rapide — IDCC 1501', provisoire:true,
-   items:[['Licenciement non-cadres','1/10 de mois par année, + 1/15 par année au-delà de 10 ans (jusqu\'à 15 ans), + 2/15 au-delà de 15 ans. Seuil 2 ans (tableau). Doublé en inaptitude professionnelle.'],
-          ['Cadres','Barème par tranches ambigu : non modélisé (légal appliqué).'],
-          ['Départ en retraite (art. 28)','60 ans révolus. 1 mois dès 10 ans, 2 mois dès 15 ans, 3 mois dès 20 ans, 4 mois dès 30 ans.'],
-          ['Mise à la retraite','Conditions de la législation en vigueur : légal.']],
-   ambigu:['Seuil : 1 an (texte) ou 2 ans (tableau).','Formule générale 1/5 + 2/15 citée par la synthèse, incompatible avec le tableau.'],
+   items:[['Licenciement non-cadres (art. 13)','Dès 2 ans : 1/10 de mois par année, + 1/15 par année au-delà de 10 ans, + 2/15 au-delà de 15 ans (lu comme le simulateur officiel).'],['Cadres (art. 13)','Dès 1 an. 1/10 par année jusqu\'à 5 ans ; au-delà 2/10 par année + 1/15 par année de 5 à 10 ans + 2/15 de 10 à 15 ans + 3/15 au-delà de 15 ans.'],['Licenciement économique','+15 % à 50 ans et plus avec 10 ans d\'ancienneté (case « motif économique »).'],['Départ en retraite (art. 28)','60 ans révolus. 1 mois dès 10 ans, 2 mois dès 15 ans, 3 mois dès 20 ans, 4 mois dès 30 ans.'],['Mise à la retraite','Conditions de la législation en vigueur : légal.']],
+   ambigu:['Cadres : le simulateur officiel applique la majoration de 2/15 dès 5 ans, ce que le texte ne prévoit pas : écart assumé, voir le recoupement.','Seuil : 1 an (texte) ou 2 ans (tableau) pour les non-cadres.'],
    sources:[['LégiSocial — licenciement',LS+'1501-restauration-rapide/licenciement-droit-calcul-indemnite-salaries-cadres.html'],['fiche-paie.fr — retraite','https://fiche-paie.fr/convention-collective/restauration-rapide-1501/depart-retraite']] },
  { id:'3248', titre:'Métallurgie — IDCC 3248', provisoire:true,
-   items:[['Départ volontaire (art. 77.3)','0,5 mois dès 2 ans ; 1 dès 5 ans ; 2 dès 10 ans ; 3 dès 20 ans ; 4 dès 30 ans ; 5 dès 35 ans ; 6 dès 40 ans. Tous groupes d\'emplois.'],
-          ['Mise à la retraite','Au moins l\'indemnité légale de licenciement.'],
-          ['Licenciement','Non-cadres : barème par seuil. Cadres (groupes F à I) : tranches, plafond 18 mois, majorations 50-60 ans, minorations 61 ans et plus. Non modélisé.']],
-   ambigu:['Barème cadres incohérent dans la source consultée (seuil 8 ans / « jusqu\'à 7 ans »).','Saisir une éventuelle indemnité supra-légale à la main pour un licenciement.'],
+   items:[['Départ volontaire (art. 77.3)','0,5 mois dès 2 ans ; 1 dès 5 ans ; 2 dès 10 ans ; 3 dès 20 ans ; 4 dès 30 ans ; 5 dès 35 ans ; 6 dès 40 ans. Tous groupes d\'emplois.'],['Mise à la retraite','Au moins l\'indemnité légale de licenciement.'],['Licenciement groupes A à E (art. 75.3)','Dès 8 mois : 1/4 de mois par année jusqu\'à 10 ans, 1/3 au-delà.'],['Licenciement groupes F à I','1/4 par année sous 8 ans ; dès 8 ans 1/5 jusqu\'à 7 ans + 3/5 au-delà. +20 % (50-55 ans) ou +30 % (55-60 ans) avec 5 ans d\'ancienneté, planchers de 3 et 6 mois, plafond 18 mois.']],
+   ambigu:['Minoration de 5 à 40 % dès 61 ans (retraite à taux plein), majoration de 50 % pour absences prolongées : non gérées.','Saisir une éventuelle indemnité supra-légale à la main.'],
    sources:[['Altis — retraite métallurgie','https://altis-conseil.fr/retraite-convention-collective-metallurgie/'],['Éditions Tissot — nouvelle convention','https://www.editions-tissot.fr/actualite/droit-du-travail/licenciement-preavis-indemnite-le-point-sur-la-nouvelle-convention-de-la-metallurgie']] },
  { id:'0016', titre:'Transports routiers — IDCC 0016', provisoire:true,
-   items:[['Ouvriers et employés','Dès 2 ans : 1/10 de mois par année ; dès 3 ans : 2/10. Base : moyenne des 3 derniers mois.'],
-          ['Techniciens et agents de maîtrise','Dès 2 ans : 1/10 ; dès 3 ans : 3/10 par année.'],
-          ['Ingénieurs et cadres','Dès 3 ans : 4/10 de mois par année. Indemnité complémentaire (2 / 3 / 4 mois après 10 / 20 / 30 ans) non modélisée.'],
-          ['Réduction d\'âge','20 % par année après 60 ans : non appliquée.'],
-          ['Retraite','Barèmes par catégorie non relevés.']],
-   ambigu:['Le taux supérieur s\'applique-t-il à toutes les années ou seulement au-delà du seuil ? (toutes les années retenues).','Article 17 : 60 ou 61 ans.'],
+   items:[['Ouvriers et employés','Dès 2 ans : 1/10 de mois par année ; dès 3 ans : 2/10. Base : moyenne des 3 derniers mois.'],['Techniciens et agents de maîtrise','Dès 2 ans : 1/10 ; dès 3 ans : 3/10 par année.'],['Ingénieurs et cadres','Dès 3 ans : 4/10 de mois par année. Indemnité complémentaire (2 / 3 / 4 mois après 10 / 20 / 30 ans) non modélisée.'],['Réduction d\'âge','20 % par année après 60 ans : non appliquée.'],['Retraite : ouvriers, employés, techniciens et agents de maîtrise (art. 11 quinquies, 17 ter, 21 ter)','1/2 mois après 10 ans, 1 mois après 15, 1,5 après 20, 2 après 25, 2,5 après 30. Salarié de 65 ans, ou de 60 ans dans les cas prévus (inaptitude, retraite complémentaire liquidée, retraite anticipée) : conditions d\'âge signalées, non vérifiées. Base : moyenne des 12 derniers mois.'],['Retraite des cadres (annexe IV, art. 18)','4,5 % à 21 % de la rémunération annuelle réelle selon l\'ancienneté, avec minimums et plafonds de la grille garantie : non modélisée.']],
+   ambigu:['Le taux supérieur s\'applique-t-il à toutes les années ou seulement au-delà du seuil ? (toutes les années retenues).','À exactement 3 ans, le simulateur officiel n\'applique pas le barème cadres (« au moins 3 années » dans le texte).'],
    sources:[['fiche-paie.fr — licenciement','https://fiche-paie.fr/convention-collective/transports-routiers-0016/indemnite-licenciement'],['LégiSocial — licenciement',LS+'16-transports-routiers-et-activites-auxiliaires/licenciement-congediement.html']] },
  { id:'0573', titre:'Commerces de gros — IDCC 0573', provisoire:true,
-   items:[['Licenciement employés','Dès 2 ans : 1/10 de mois par année + 1/15 au-delà de 10 ans.'],
-          ['Licenciement cadres','Dès 2 ans : 1/10 par année jusqu\'à 5 ans ; au-delà 3/10 (jusqu\'à 10 ans), 4/10 (10 à 20 ans), 5/10 (au-delà). Plafond 12 mois. +15 % (50-55 ans) ou +20 % (55 ans et plus) avec 15 ans d\'ancienneté.'],
-          ['Agents de maîtrise','Taux contradictoires entre sources : non modélisé.'],
-          ['Retraite (départ et mise à la retraite)','Employés : 1/10 de mois par année, plafond 3 mois. Agents de maîtrise : 2/20 par année + 1/20 après 15 ans, plafond 6 mois. Cadres : 2/20, 3/20, 4/20 par année selon l\'ancienneté, plafond 6 mois.']],
-   ambigu:['Seuil : 1 an (texte) ou 2 ans (tableau).','Taux cadres lus comme des tranches d\'années (lecture à valider).','Départ volontaire : retraite à taux plein exigée.'],
+   items:[['Licenciement employés (art. 37)','Dès 1 an : 1/5 de mois par année, + 2/15 par année au-delà de 10 ans.'],['Agents de maîtrise (avenant II, art. 4)','Dès 1 an : 2/10 par année + 2/15 au-delà de 10 ans. Licenciement économique à 55 ans et plus avec 15 ans (case « motif économique ») : 2/10 jusqu\'à 9 ans, 3/10 ensuite, +20 %, plafond 6 mois.'],['Cadres (avenant I, art. 4)','Dès 1 an : 2/10 par année jusqu\'à 5 ans ; au-delà 3/10 (années 1 à 9), 4/10 (10e à 19e), 5/10 (dès la 20e). Plafond 12 mois. +15 % (50-55 ans) ou +20 % (55 ans et plus) avec 15 ans d\'ancienneté.'],['Retraite (départ et mise à la retraite)','Employés : 1/10 de mois par année, plafond 3 mois. Agents de maîtrise : 2/20 par année + 1/20 après 15 ans, plafond 6 mois. Cadres : 2/20, 3/20, 4/20 par tranche, plafond 6 mois. Relevé sur synthèse, à recouper sur le texte.']],
+   ambigu:['Texte du licenciement relu le 21/11/2026 et recoupé avec le simulateur officiel.','Plafond de 6 mois des agents de maîtrise (éco) : lu majoration comprise comme le simulateur officiel.'],
    sources:[['LégiSocial — licenciement',LS+'573-commerces-de-gros/licenciement-conditions-indemnite.html'],['LégiSocial — retraite',LS+'573-commerces-gros/retraite-depart-volontaire-mise-retraite.html']] },
  { id:'1527', titre:'Immobilier — IDCC 1527', provisoire:true,
    items:[['Licenciement (art. 33)','Motif personnel : ¼ du salaire global brut mensuel par année après 2 ans. Motif économique : maximum 6 mois, minimum légal.'],
@@ -1905,8 +1964,8 @@ RULES_DOC.push(
    ambigu:['Bornes exactes (5, 10, 15 ans pile) non précisées : « plus de » retenu strictement.','Base de salaire : salaire contractuel, non la moyenne des 12 mois.'],
    sources:[['LégiSocial — retraite',LS+'1527-immobilier-administrateurs-de-biens-et-agents-immobiliers/retraite-depart-volontaire-indemnite-mise-retraite.html'],['LégiSocial — licenciement',LS+'1527-immobilier/licenciement-anciennete-motifs.html'],['Légifrance — avenant 95','https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000047011121']] },
  { id:'1043', titre:'Gardiens, concierges et employés d\'immeubles — IDCC 1043', provisoire:true,
-   items:[['Licenciement','Dès 1 an : 1/5 de mois par année de 1 à 7 ans ; majoration de 2/15 par année (dès 8 ou dès 10 ans selon les passages) et de 1/10 dès 20 ans. Catégories A et B. Non modélisé.']],
-   ambigu:['Passages contradictoires, base de salaire à trancher.','Légal appliqué en attendant la validation du texte.'],
+   items:[['Licenciement (art. 16)','Dès 1 an : 1/5 de mois par année sur la totalité des années, + 2/15 par année au-delà de la 7e, + 1/10 par année au-delà de la 19e. Années incomplètes au prorata.'],['Retraite','Non modélisée : légal appliqué.']],
+   ambigu:['Texte relu sur Légifrance le 21/11/2026 et recoupé avec le simulateur officiel.','Base de salaire : rémunération globale brute mensuelle contractuelle (art. 22.2), 1/12 des 12 mois ou 1/3 des 3 mois : le plus favorable est retenu.'],
    sources:[['LégiSocial — licenciement',LS+'1043-gardiens-et-concierges-immeubles/licenciement-faute-privative-calcul-salaire-de-reference.html']] },
  { id:'1147', titre:'Personnel des cabinets médicaux — IDCC 1147', provisoire:true,
    items:[['Licenciement (art. 25)','Dès 1 an : 1/5 de mois par année + 2/15 au-delà de 10 ans. Doublé en inaptitude professionnelle.'],
@@ -1927,10 +1986,8 @@ RULES_DOC.push(
    ambigu:['Formule générale 1/5 + 2/15 incompatible avec le tableau : tableau retenu.','Années intermédiaires du barème de départ non précisées (dernier palier atteint retenu).','Plafond non indiqué.'],
    sources:[['LégiSocial — licenciement',LS+'2511-sport/licenciement-droit-calcul-indemnite-salaire-de-reference.html'],['LégiSocial — retraite',LS+'2511-sport/retraite-indemnite-depart-volontaire-la-retraite-mise-la-retraite.html']] },
  { id:'1517', titre:'Commerces de détail non alimentaires — IDCC 1517', provisoire:true,
-   items:[['Licenciement','Dès 1 an : 1/5 de mois par année + 2/15 au-delà de 10 ans.'],
-          ['Départ volontaire','10 ans : 1 mois ; 15 : 1,5 ; 20 : 2 ; 25 : 2,5 ; 30 : 3.'],
-          ['Mise à la retraite','Identique à l\'indemnité de licenciement, dès 1 an.']],
-   ambigu:['Assiette du départ volontaire mal restituée par la synthèse (moitié des 12 mois ?).','Non-cumul avec une indemnité de même nature.'],
+   items:[['Licenciement (art. 4, chap. VI)','Dès 8 mois : 1/4 de mois par année jusqu\'à 10 ans, puis 1/3 + 1/15 par année à partir de 10 ans. Années incomplètes au prorata des mois complets.'],['Départ volontaire','10 ans : 1 mois ; 15 : 1,5 ; 20 : 2 ; 25 : 2,5 ; 30 : 3.'],['Mise à la retraite','Identique à l\'indemnité de licenciement.']],
+   ambigu:['Texte relu le 21/11/2026 et recoupé avec le simulateur officiel (licenciement).','Assiette du départ volontaire mal restituée par la synthèse (moitié des 12 mois ?).'],
    sources:[['LégiSocial — retraite',LS+'1517-commerces-de-detail-non-alimentaires/retraite-depart-volontaire-mise-la-retraite-reduction-horaire-de-travail.html'],['LégiSocial — licenciement',LS+'1517-commerces-de-detail-non-alimentaires/licenciement-droit-calcul-indemnite.html']] },
  { id:'0843', titre:'Boulangerie-pâtisserie artisanale — IDCC 0843', provisoire:true,
    items:[['Licenciement','Renvoi au légal.'],
@@ -1938,26 +1995,24 @@ RULES_DOC.push(
    ambigu:['Seuil d\'ancienneté du licenciement : 1 ou 2 ans selon les passages.','Années intermédiaires non détaillées.'],
    sources:[['LégiSocial — retraite',LS+'843-boulangerie-patisserie/retraite-depart-volontaire-mise-retraite-anciennete.html']] },
  { id:'1505', titre:'Commerce de détail alimentaire non spécialisé — IDCC 1505', provisoire:true,
-   items:[['Licenciement (art. 21)','Dès 8 mois : ¼ de mois par année jusqu\'à 10 ans, ⅓ au-delà : identique au légal.'],['Retraite','Barème de départ non relevé : légal appliqué.']],
-   ambigu:['Catégories, plafond, majorations non mentionnés par la source.'],
+   items:[['Licenciement (art. 21)','Dès 8 mois : ¼ de mois par année jusqu\'à 10 ans, ⅓ au-delà : identique au légal.'],['Départ à la retraite (art. 23.4.1)','Dès 2 ans : 1/10 de mois par année, plafond 3 mois. Salaire : plus favorable des moyennes 12 et 3 mois.'],['Mise à la retraite (art. 23.4.2)','Au moins égale à l\'indemnité légale de licenciement.']],
+   ambigu:['Texte de la retraite relu le 21/11/2026.'],
    sources:[['fiche-paie.fr — licenciement','https://fiche-paie.fr/convention-collective/commerce-detail-alimentaire-non-specialise-1505/indemnite-licenciement']] },
  { id:'1597', titre:'Bâtiment — ouvriers (plus de 10 salariés) — IDCC 1597', provisoire:true,
-   items:[['Licenciement','Barème supposé identique à celui des ouvriers ≤ 10 salariés (1596) : voir cette fiche.'],['Retraite','Indemnité de fin de carrière : non modélisée.']],
-   ambigu:['Identité de barème avec 1596 non vérifiée sur le texte.'],
+   items:[['Licenciement (art. 10.3)','Barème identique à celui des ouvriers jusqu\'à 10 salariés (1596), relu sur le texte le 21/11/2026.'],['Retraite','Indemnité servie par la CNPO : seul le minimum légal est calculé (voir 1596).']],
+   ambigu:['Condition de pension à taux plein non vérifiée.'],
    sources:[['Code du travail numérique','https://code.travail.gouv.fr/']] },
  { id:'1619', titre:'Cabinets dentaires — IDCC 1619', provisoire:true,
    items:[['Licenciement et retraite','Barème non confirmé ; mise à la retraite = garantie identique à celle du licenciement (art. 4.4). Légal appliqué.']],
    ambigu:['Texte intégral nécessaire.'],
    sources:[['LégiSocial — retraite',LS+'1619-cabinets-dentaires/retraite-indemnite-depart-mise-en-retraite.html']] },
  { id:'2216', titre:'Commerce de détail et de gros à prédominance alimentaire — IDCC 2216', provisoire:true,
-   items:[['Licenciement non-cadres','Dès 1 an : 1/5 de mois par année + 2/15 au-delà de 10 ans.'],
-          ['Cadres','1/5 par année jusqu\'à 5 ans ; au-delà 3/10 (jusqu\'à 10 ans), 4/10 (10 à 20 ans), 5/10 (au-delà). Plafond 12 mois ; + 1/3 de mois par année au-delà de 40 ans.'],['Retraite','Non modélisée.']],
-   ambigu:['Formule générale 1/5 + 2/15 différente du tableau cadres.','Tranches lues comme des tranches d\'années (à valider).'],
+   items:[['Licenciement ouvriers, employés, agents de maîtrise (annexes I et II, art. 7)','Dès 8 mois : 1/4 de mois par année jusqu\'à 10 ans, 1/3 au-delà. Licenciement économique à plus de 50 ans : +20 %.'],['Cadres (annexe III, art. 7)','1/4 par année jusqu\'à 5 ans ; au-delà 3/10 (jusqu\'à 10 ans), 4/10 (10 à 20 ans), 5/10 (au-delà). Plafond 12 mois ; + 1/3 de mois par année au-delà de 40 ans. Économique à 50 ans et plus : +20 %.'],['Départ en retraite (art. 8.2)','Ouvriers, employés, agents de maîtrise, dès 10 ans : 2/20 par année jusqu\'à 10 ans, 3/20 au-delà, plafond 4 mois. Cadres, dès 5 ans : 2/20 jusqu\'à 10 ans, 3/20 de 10 à 20 ans, 5/20 au-delà, plafond 6 mois.'],['Mise à la retraite (art. 8.3)','Au moins l\'indemnité de licenciement de l\'article 7.']],
+   ambigu:['Texte relu le 21/11/2026 : l\'ancienne lecture « 1/5 + 2/15 » de la synthèse était erronée.','Exclusions de la majoration économique (reclassement aidé, préretraite, retraite sans abattement) non vérifiées.'],
    sources:[['LégiSocial — licenciement',LS+'2216-commerce-detail-gros-alimentaire/licenciement-droit-calcul-indemnite-ouvriers-cadres-agent-de-maitrise-employes-personnel-de-livraison.html']] },
  { id:'2098', titre:'Prestataires de services du secteur tertiaire — IDCC 2098', provisoire:true,
-   items:[['Non-cadres (dès 2 ans)','1/10 de mois par année (0-5 ans), 1/7 (6-10), 1/5 (11-20), 1/4 (21-30), 1/3 (au-delà). Plafond 12 mois.'],
-          ['Cadres (dès 2 ans)','3/10 (0-5 ans), 4/10 (6-10), 5/10 (11-15), 6/10 (au-delà). Plafond 18 mois ; +10 % (50-55 ans), +25 % (plus de 55 ans).'],['Retraite','Mode de calcul « idem licenciement » avec abattement de 50 % : ambigu, non modélisé.']],
-   ambigu:['Seuil : 1 an (texte) ou 2 ans (tableaux).','Articulation avec le légal non précisée.'],
+   items:[['Non-cadres (dès 2 ans)','1/10 de mois par année (0-5 ans), 1/7 (6-10), 1/5 (11-20), 1/4 (21-30), 1/3 (au-delà). Plafond 12 mois.'],['Cadres (avenant cadres, art. 3.1, dès 2 ans)','3/10 (0-5 ans), 4/10 (6-10), 5/10 (11-15), 6/10 (au-delà). +10 % (50-55 ans), +25 % (55 ans et plus), puis plafond de 18 mois, majoration comprise.'],['Retraite des cadres (art. 3.2)','Allocation : 1/2 mois de 2 à 5 ans, 1 mois dès 5 ans, 2 dès 10, 3 dès 15, 4 dès 20, 5 dès 25, 6 dès 30. Mise à la retraite : au moins le légal.'],['Retraite des non-cadres','Aucune allocation conventionnelle relevée : légal.']],
+   ambigu:['Allocation des cadres lue par paliers (le texte parle de calcul proportionnel pour chaque période entamée).','Conditions de retraite à taux plein non vérifiées.'],
    sources:[['LégiSocial — licenciement',LS+'2098-prestataires-de-services-du-tertiaire/licenciement-droit-calcul-indemnite-cadres.html'],['LégiSocial — retraite',LS+'2098-prestataires-de-services-du-tertiaire/retraite-allocation-depart-volontaire-mise-la-retraite-cadre.html']] },
  { id:'0787', titre:'Experts-comptables et commissaires aux comptes — IDCC 0787', provisoire:true,
    items:[['Licenciement','Renvoi au légal (employés et cadres).'],
@@ -1965,12 +2020,13 @@ RULES_DOC.push(
    ambigu:['Base de la « majoration de 1/10ème par année complète de présence » non précisée par l\'extrait : à vérifier en priorité.','Plafond et catégories non précisés.'],
    sources:[['LégiSocial — retraite',LS+'787-experts-comptables-et-commissaires-aux-comptes/retraite-depart-volontaire-mise-la-retraite.html']] },
  { id:'1996', titre:'Pharmacie d\'officine — IDCC 1996', provisoire:true,
-   items:[['Départ volontaire','10 ans : 0,5 mois ; 15 : 1 ; 20 : 1,5 ; 25 : 2 ; 30 : 2,5. Salaire : plus favorable 3 / 12 mois.'],
-          ['Mise à la retraite','« Au moins » l\'indemnité légale ou conventionnelle de licenciement.'],['Licenciement','Barème par statut et motif relevé en partie seulement : non modélisé.']],
-   ambigu:['Barème de licenciement à relever dans le texte (non-cadre, motif économique : 2/10 de mois par année de 2 à 10 ans relevé).'],
+   items:[['Licenciement non-cadres (art. 21)','Dès 8 mois : 1/4 de mois par année jusqu\'à 10 ans, 3,34/10 par année à compter de la 11e.'],['Licenciement cadres (annexe, art. 6)','Moins de 5 ans : 1/4 par année. Dès 5 ans : 3/10 jusqu\'à 15 ans, 5/10 à compter de la 16e ; licenciement économique : 3/10 jusqu\'à 10 ans, 3,34/10 de la 11e à la 15e année, 5/10 ensuite (case « motif économique »).'],['Départ volontaire','10 ans : 0,5 mois ; 15 : 1 ; 20 : 1,5 ; 25 : 2 ; 30 : 2,5.'],['Mise à la retraite','« Au moins » l\'indemnité légale ou conventionnelle de licenciement : légal appliqué (non modélisée).']],
+   ambigu:['Ancienneté appréciée à la fin du préavis dans le texte : saisir la date de fin de préavis comme date de sortie.','Barème de la mise à la retraite à confirmer.'],
    sources:[['LégiSocial — retraite',LS+'1996-pharmacie-officine/retraite-indemnite-depart-volontaire-indemnite-mise-en-retraite.html'],['LégiSocial — licenciement',LS+'1996-pharmacie-officine/licenciement-indemnite-motif.html']] },
  { id:'1483', titre:'Commerce de détail habillement et textiles — IDCC 1483', provisoire:true,
-   items:[['Barème','Non relevé : légal appliqué.']], ambigu:['Texte intégral nécessaire.'], sources:[['LégiSocial',LS+'1483-commerce-de-detail-habillement-et-textiles/']] },
+   items:[['Licenciement non-cadres (art. 17)','Dès 1 an : 1/5 de mois par année jusqu\'à 10 ans, 1/3 par année au-delà.'],['Encadrement (art. 11, chap. II)','1/5 par année de 1 à 5 ans ; dès 5 ans 1/4 par année dès la première ; 1/3 par année au-delà de 16 ans. +25 % à 50 ans et plus avec 15 ans de présence.'],['Retraite','Non modélisée : légal appliqué.']],
+   ambigu:['Texte relu le 21/11/2026 et recoupé avec le simulateur officiel.','« Licencié après l\'âge de 50 ans » : lu 50 ans révolus et plus, comme le simulateur officiel.'],
+   sources:[['LégiSocial',LS+'1483-commerce-de-detail-habillement-et-textiles/']] },
  { id:'7018', titre:'Entreprises du paysage — IDCC 7018', provisoire:true,
    items:[['Barème','Non relevé : légal appliqué.'],['Retraite','Avenant n° 47 (ouvriers, employés, TAM), en vigueur le 1er juillet 2026 : non relevé.']], ambigu:['Texte intégral nécessaire.'], sources:[['LégiSocial',LS+'7018-entreprises-du-paysage/']] },
  { id:'1518', titre:'Éducation, culture, loisirs, animation — IDCC 1518', provisoire:true,
@@ -1988,7 +2044,7 @@ const $ = id => document.getElementById(id);
 const blankMois = () => Array.from({length:12},()=>({brut:'',recon:'',inclus:true,note:''}));
 const DEFAULT = () => ({ id:null, nom:'', prenom:'', emploi:'', classif:'', statut:'', motif:'rc', ccn:'1090', categorie:'etam', age:'', naissance:'', ageRef:'sortie',
   entree:'2015-09-14', sortie:'2025-10-31', dateRef:'2025-09-04', absences:[], mois:blankMois().map(m=>({...m,brut:'2200'})),
-  supra:'', taux:'', honoraires:'370', arrondi:'', remCcn:'', remAbs:'', cal:{...RC_DEFAUT} });
+  eco:false, supra:'', taux:'', honoraires:'370', arrondi:'', remCcn:'', remAbs:'', cal:{...RC_DEFAUT} });
 let S = DEFAULT();
 
 const monthDates = () => {
@@ -2000,7 +2056,7 @@ const monthLabel = d => d.toLocaleDateString('fr-FR',{month:'long',year:'numeric
 const monthRows = () => { const ds=monthDates(); return S.mois.map((m,i)=>({ ...m, date:toISO(ds[i]), label:monthLabel(ds[i]) })); };
 function inpFromS(){
   const sal = salaireDepuisMois(S.mois);
-  return { ...S, sr12:sal.sr12, sr3:sal.sr3, taux:S.taux, honoraires:S.honoraires };
+  return { ...S, eco:!!S.eco && S.motif==='lic', sr12:sal.sr12, sr3:sal.sr3, taux:S.taux, honoraires:S.honoraires };
 }
 
 /* ---------- Formulaire ---------- */
@@ -2012,7 +2068,7 @@ function initForm(){
 }
 function push(){
   TXT.forEach(k=>{ const el=$(k); if(el && el.type!=='checkbox') el.value = S[k]==null?'':S[k]; });
-  syncCcnFields(); renderAbs(); renderMonths(); buildCalCtl();
+  $('eco').checked=!!S.eco; syncCcnFields(); renderAbs(); renderMonths(); buildCalCtl();
 }
 function syncCcnFields(){
   const c = CCN[S.ccn];
@@ -2023,6 +2079,7 @@ function syncCcnFields(){
     if(!c.categories.some(x=>x[0]===S.categorie)) S.categorie=c.categories[0][0];
     $('categorie').value=S.categorie;
   }
+  $('w-eco').hidden = S.motif!=='lic';
   const rc = S.motif==='rc';
   $('ref-lab').textContent = rc ? 'Date de signature' : 'Date de notification';
 }
@@ -2067,7 +2124,7 @@ function render(){
   const box = $('result');
   if(r.erreur){ box.innerHTML = `<div class="res-top"><div class="res-lab">Indemnité de rupture</div><div class="res-big">—</div></div><div class="err">${r.erreur}</div>`; lastText=''; return; }
   const winLeg = r.retenu.source==='légale';
-  const motifTxt = MOTIFS[S.motif];
+  const motifTxt = MOTIFS[S.motif] + (S.motif==='lic' && S.eco ? ' — motif économique' : '');
   const ccnTxt = S.ccn==='none' ? 'Code du travail' : CCN[S.ccn].nom;
   let cmp = `<div class="c ${winLeg?'win':''}"><span>Minimum légal (Code du travail)</span><b>${fmtEur(r.legal.eligible?r.legal.montant:0)}</b><small>${r.legal.texte}</small></div>`;
   if(r.conv) cmp += `<div class="c ${!winLeg?'win':''}"><span>Conventionnelle${r.conv.extra}</span><b>${r.conv.montant?fmtEur(r.conv.montant):'—'}</b><small>${r.conv.lignes.join(' ')}</small></div>`;
@@ -2213,6 +2270,7 @@ function cxHtml(id){
   else if(c.st==='assume') body=`<span class="badge info">Écart assumé, texte relu</span><p>${c.n} cas comparés : le moteur suit le texte de la convention sur Légifrance et s'écarte du simulateur officiel dans ${c.ex.length} cas de la grille.</p><p>${c.note}</p><ul>${c.ex.map(e=>`<li>${e.an} ans, ${e.age} ans${e.cat?', catégorie « '+e.cat+' »':''} : moteur ${fmtE(e.moi)} — officiel ${fmtE(e.off)}</li>`).join('')}</ul>`;
   else if(c.st==='ecart') body=`<span class="badge prov">Écarts à arbitrer</span><p>${c.n} cas comparés : le moteur et le simulateur officiel donnent des montants retenus différents.</p><ul>${c.ex.map(e=>`<li>${e.an} ans, ${e.age} ans${e.cat?', catégorie « '+e.cat+' »':''} : moteur ${fmtE(e.moi)} — officiel ${fmtE(e.off)}${e.nm?' (barème conventionnel non modélisé : le moteur retient le légal)':''}</li>`).join('')}</ul>`;
   else body=`<span class="badge info">Non couverte par le simulateur officiel</span><p>Cette convention ne figure pas dans les modèles du Code du travail numérique : le barème doit être confronté directement au texte de la convention sur Légifrance.</p>`;
+  if(c.eco) body+=`<p>Avec la case « motif économique » cochée : ${c.eco.n} cas comparés, ${c.eco.ko?c.eco.ko+' écart(s)'+(c.st==='assume'?' (ceux de l\'écart assumé ci-dessus)':''):'aucun écart'}.</p>`;
   const foot = c.st==='non_couvert' ? '' : `<p style="color:var(--muted)">Périmètre : licenciement et rupture conventionnelle (grille : ${CROISEMENT.grille}). ${CROISEMENT.retraite?`Départ et mise à la retraite : volet légal recoupé (${CROISEMENT.retraite.n} cas, ${CROISEMENT.retraite.ko} écart) ; le simulateur officiel ne propose pas de volet conventionnel pour la retraite, les barèmes conventionnels de retraite restent à valider sur les textes.`:'Le départ et la mise à la retraite ne sont pas recoupés.'} Version des règles officielles : ${CROISEMENT.version}.</p>`;
   return `<div class="cx">${head}<div style="margin-top:6px">${body}</div>${foot}</div>`;
 }
@@ -2260,6 +2318,7 @@ function runTests(){
     return `<tr><td class="${ok?'pass':'fail'}">${ok?'✓':'✗'}</td><td>${t.nom}</td><td>${t.calcul}</td><td class="r">${fmtEur(att)}</td><td class="r">${obt}</td></tr>`;
   }).join('');
   const c=$('tcount'); c.textContent = ko? ko+' ✗' : TESTS.length+' ✓'; c.classList.toggle('ko',!!ko);
+  TEST_KO=ko; testsOpt($('opt-tests').checked, ko);
 }
 
 /* ---------- Fiches enregistrées, import / export ---------- */
@@ -2463,6 +2522,7 @@ function bind(){
       render();
     });
   });
+  $('eco').addEventListener('change',()=>{ S.eco=$('eco').checked; render(); });
   $('abs-add').addEventListener('click',()=>{ S.absences.push({type:'maladie',jours:30}); renderAbs(); render(); });
   $('abs-list').addEventListener('input',e=>{
     const t=e.target, i=+t.dataset.i; if(isNaN(i)) return;
@@ -2521,14 +2581,25 @@ function bind(){
     rd.readAsText(file); e.target.value='';
   });
 }
+function testsOpt(on, ko){
+  const nav=$('nav-tests'); const show_ = !!on || !!ko;
+  nav.hidden = !show_;
+  if(!show_ && !$('v-tests').hidden) show('fiche');
+}
+function loadTestsPref(){ try{ return localStorage.getItem('ind-tests')==='1'; }catch(e){ return false; } }
 function show(v){
   ['fiche','regles','tests'].forEach(k=>{ $('v-'+k).hidden = k!==v; });
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
   try{ history.replaceState(null,'','#'+v); }catch(e){}
 }
 
+let TEST_KO=0;
+{ const d = 'Version V2.8 du 21/11/2026 — recoupement avec le simulateur officiel du '+CROISEMENT.date+' ('+CROISEMENT.version+') — '+TESTS.length+' cas de test';
+  $('ver').title=d; $('foot-ver').textContent=d; }
+$('opt-tests').checked = loadTestsPref();
+$('opt-tests').addEventListener('change',()=>{ try{ localStorage.setItem('ind-tests',$('opt-tests').checked?'1':'0'); }catch(e){} testsOpt($('opt-tests').checked, TEST_KO); });
 initForm(); bind(); render(); renderRules(); renderSaved(); runTests();
-const h=(location.hash||'').replace('#',''); if(['regles','tests'].includes(h)) show(h);
+const h=(location.hash||'').replace('#',''); if(h==='regles') show(h); else if(h==='tests'){ $('opt-tests').checked=true; testsOpt(true,TEST_KO); show('tests'); }
 </script>
 </body>
 </html>
