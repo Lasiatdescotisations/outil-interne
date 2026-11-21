@@ -8,7 +8,7 @@ Un outil gratuit et libre pour **calculer, et surtout comprendre**, les indemnit
 
 - Motifs : rupture conventionnelle, licenciement pour motif personnel, licenciement pour motif économique (avec CSP), inaptitude, mise à la retraite, départ volontaire à la retraite.
 - Compare le minimum légal et le barème de la convention collective, retient le plus favorable, puis déduit les conséquences sociales et fiscales (contribution patronale, parts exonérées ou soumises).
-- Près de 70 conventions collectives parmi les plus répandues, relues pour la plupart sur Légifrance, à des niveaux de couverture variables (barème complet, partiel, ou minimum légal appliqué avec une alerte). Le détail par convention est dans l'onglet Règles de l'outil.
+- Près de 90 conventions collectives parmi les plus répandues, relues pour la plupart sur Légifrance (les dernières ajoutées sont signalées « non vérifiées »), à des niveaux de couverture variables (barème complet, partiel, ou minimum légal appliqué avec une alerte). Le détail par convention est dans l'onglet Règles de l'outil.
 - Calendriers de procédure au plus tôt pour chaque motif.
 - Exports au choix : PDF, image, texte à coller dans un mail, Excel ou fichier de sauvegarde.
 - Messagerie privée « Contacter l'auteur » (optionnelle).
