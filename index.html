@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d6656'/%3E%3Cg fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='6' width='14' height='20' rx='2'/%3E%3Cpath d='M12.5 11h7M12.5 16h.01M16 16h.01M19.5 16h.01M12.5 20.5h.01M16 20.5h.01M19.5 20.5h.01'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --brand-font:'Cinzel','Trajan Pro',Georgia,serif; --brand-ls:.05em;
@@ -23,7 +23,7 @@
   --shadow:0 1px 2px rgba(20,20,10,.05), 0 4px 16px rgba(20,20,10,.05);
   --r:10px;
   --sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono:"IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --mono:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; /* chiffres alignés par tabulaires, zéro sans point ni barre */
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -38,8 +38,14 @@
   }
 }
 *{box-sizing:border-box}
+.sw{display:flex;flex-wrap:wrap;gap:10px;max-width:330px}
+.sw button{width:28px;height:28px;border-radius:50%;border:0;padding:0;cursor:pointer;box-shadow:inset 0 0 0 2px var(--surface)}
+.sw button[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:2px}
+.prow{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.prow .pl{max-width:420px}.prow .pl b{display:block;font-weight:600;font-size:14.5px}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:10px}
 [hidden]{display:none !important}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 input,select,textarea{background:var(--surface);border:1px solid var(--line-2);border-radius:7px;padding:7px 9px;outline:none;min-width:0;width:100%}
@@ -251,9 +257,10 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
   <nav class="nav" id="nav">
     <button data-view="fiche" class="on">Fiche</button>
     <button data-view="regles">Règles</button>
+    <button data-view="params">Paramètres</button>
     <button data-view="tests" id="nav-tests" hidden>Tests <span class="count" id="tcount">…</span></button>
   </nav>
-  <div class="top-right" id="ver" title="">V2.8 · 21/11/2026 · règles à valider</div>
+  <div class="top-right" id="ver" title="">V3.1 · 21/11/2026 · règles à valider</div>
 </header>
 
 <main class="wrap">
@@ -272,22 +279,23 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
      </div>
      <div class="bar" style="margin-top:10px">
        <button class="btn" id="b-xlsx" type="button">Exporter en Excel (.xlsx)</button>
-       <button class="btn" id="b-pdf" type="button" aria-expanded="false" aria-controls="pdf-panel">Exporter en PDF…</button>
+       <button class="btn" id="b-pdf" type="button" aria-expanded="false" aria-controls="pdf-panel">Exporter en PDF ou image…</button>
        <button class="btn" id="b-json" type="button">Exporter la fiche (.json)</button>
        <label class="btn" style="cursor:pointer">Importer (.json)<input type="file" id="b-import" accept=".json,application/json" hidden></label>
        <span class="msg" id="io-msg"></span>
      </div>
      <div class="pdfp" id="pdf-panel" hidden>
-       <div class="pdfp-h"><b>Contenu du PDF</b>
+       <div class="pdfp-h"><b>Contenu de l'export (PDF ou image)</b>
          <span class="pdfp-pre"><button class="btn ghost sm" id="pdf-client" type="button">Version client</button><button class="btn ghost sm" id="pdf-full" type="button">Fiche complète</button></span></div>
        <div class="pdfp-grid" id="pdf-blocs"></div>
        <div class="pdfp-fields">
+         <label class="f"><span>Style du document</span><select id="pdf-style"><option value="site">Design de l'outil (couleur)</option><option value="neutre">Neutre (noir et blanc, pour impression)</option></select></label>
          <label class="f"><span>Titre (facultatif)</span><input id="pdf-titre" placeholder="Calcul d'indemnité - Nom Prénom"></label>
          <label class="f"><span>En-tête (cabinet, facultatif)</span><input id="pdf-entete" placeholder="Nom du cabinet"></label>
          <label class="f"><span>Mention de bas de page</span><input id="pdf-note"></label>
        </div>
-       <div class="bar"><button class="btn primary" id="pdf-go" type="button">Générer le PDF</button><button class="btn ghost" id="pdf-close" type="button">Fermer</button><span class="msg" id="pdf-msg"></span></div>
-       <div class="hint">Les cases cochées sont mémorisées dans ce navigateur. « Version client » masque les détails internes (calcul, rémunération, points d'attention, règles).</div>
+       <div class="bar"><button class="btn primary" id="pdf-go" type="button">Générer le PDF</button><button class="btn primary" id="img-go" type="button">Générer l'image (PNG)</button><button class="btn" id="img-copy" type="button">Copier l'image</button><button class="btn ghost" id="pdf-close" type="button">Fermer</button><span class="msg" id="pdf-msg"></span></div>
+       <div class="hint">L'image reprend la même mise en page que le PDF, en une seule page continue (idéale pour un message ou un tableur). Les cases cochées sont mémorisées dans ce navigateur. « Version client » masque les détails internes (calcul, rémunération, points d'attention, règles).</div>
      </div>
      <div class="hint">Les fiches sont enregistrées dans ce navigateur seulement : exportez-les pour les conserver ou les changer d'appareil.</div>
    </div>
@@ -360,13 +368,19 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
      <div class="row three">
        <label class="f"><span>Indemnité supra-légale (€)</span><input type="number" id="supra" min="0" step="0.01" inputmode="decimal"></label>
        <label class="f"><span>Contribution patronale (%)</span><input type="number" id="taux" min="0" max="100" step="1" inputmode="decimal" placeholder="auto"><div class="hint" id="taux-hint">Rupture conventionnelle et mise à la retraite.</div></label>
-       <label class="f"><span>Honoraires (€)</span><input type="number" id="honoraires" min="0" step="0.01" inputmode="decimal"></label>
+       <label class="f"><span>Honoraires (€)</span><input type="number" id="honoraires" min="0" step="0.01" inputmode="decimal"><div class="hint" id="hono-hint"></div></label>
      </div>
      <div class="row">
        <label class="f"><span>Arrondi de l'indemnité retenue</span><select id="arrondi"><option value="">Automatique (RC : dizaine supérieure ; sinon euro supérieur)</option><option value="dizaine">Dizaine d'euros supérieure</option><option value="euro">Euro supérieur</option><option value="aucun">Aucun (centimes)</option></select></label>
        <label class="f"><span>Remarque sur la convention</span><input id="remCcn" placeholder="ex. CCN très inférieur au légal"></label>
      </div>
+     <div class="row">
+       <label class="f"><span>Rémunération brute de l'année civile précédente (€)</span><input type="number" id="remN1" min="0" step="0.01" inputmode="decimal"><div class="hint">Année civile qui précède la rupture. Nécessaire au régime social et fiscal (seuil « 2 fois la rémunération »).</div></label>
+       <div class="f" id="w-droit" hidden><span>Rupture conventionnelle</span><label class="chk"><input type="checkbox" id="droitRetraite"><span>Salarié en droit de bénéficier d'une pension de retraite (indemnité imposable en totalité)</span></label></div>
+     </div>
      <div class="row one"><label class="f"><span>Remarque sur les absences</span><input id="remAbs" placeholder="ex. Les mois de maladie/AT ne sont pas déduits"></label></div>
+     <div class="row one"><label class="f"><span>Calcul établi par</span><input id="auteur" autocomplete="off" placeholder="Nom ou initiales (voir Paramètres)"></label></div>
+     <div class="row one"><label class="f"><span>Notes et remarques sur le dossier</span><textarea id="notes" rows="4" placeholder="Hypothèses retenues, échanges avec le salarié ou l'employeur, points à vérifier…"></textarea><div class="hint">Enregistrées avec la fiche. Vous pouvez les inclure ou non dans l'export PDF ou image.</div></label></div>
    </div>
   </div>
 
@@ -380,6 +394,33 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
      <div id="cal-out"></div>
    </div>
   </aside>
+ </div>
+</section>
+
+<!-- ============ PARAMÈTRES ============ -->
+<section class="view" id="v-params" hidden>
+ <div style="max-width:860px;margin:0 auto;display:grid;gap:14px">
+  <div class="card">
+    <h2>Affichage</h2>
+    <div class="prow">
+      <div class="pl"><b>Couleur de l'application</b><div class="hint" id="sw-lab"></div></div>
+      <div class="sw" id="sw" role="group" aria-label="Couleur de l'application"></div>
+    </div>
+    <div class="prow" style="margin-top:14px">
+      <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="opt-tests" style="width:auto"> Afficher l'onglet Tests (cas chiffrés)</label>
+    </div>
+    <div class="hint" style="margin-top:8px">Ces réglages sont mémorisés dans ce navigateur. La couleur choisie est aussi utilisée dans les exports PDF et image « Design de l'outil ».</div>
+  </div>
+  <div class="card">
+    <h2>Auteur des calculs</h2>
+    <label class="f"><span>Nom ou initiales</span><input id="p-auteur" autocomplete="off" placeholder="ex. M. Dupont ou MD"></label>
+    <div class="hint">Reporté automatiquement dans chaque nouvelle fiche (« Calcul établi par »), modifiable sur la fiche. Peut être affiché ou masqué à l'export.</div>
+  </div>
+  <div class="card">
+    <h2>Honoraires par défaut</h2>
+    <div class="hint">Montant proposé automatiquement selon la nature de la sortie. Il reste modifiable sur chaque fiche ; laissez vide pour ne rien proposer.</div>
+    <div class="hgrid" id="hgrid"></div>
+  </div>
  </div>
 </section>
 
@@ -421,8 +462,7 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
 </section>
 
 <footer class="foot" style="max-width:1100px;margin:0 auto;padding:6px 16px 28px;color:var(--muted);font-size:12px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center">
-  <span id="foot-ver">Version V2.8 du 21/11/2026</span>
-  <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="opt-tests"> Afficher l'onglet Tests (cas chiffrés)</label>
+  <span id="foot-ver">Version V3.1 du 21/11/2026</span>
 </footer>
 </main>
 
@@ -1050,6 +1090,46 @@ const CCN_META = {
 };
 const STATUT_LABEL = { modelisee:'Barème modélisé', partielle:'Modélisation partielle', legal:'Légal appliqué (barème non confirmé)' };
 
+
+/* ---------- Régime social et fiscal de l'indemnité (V2.9) ----------
+   Sources : BOSS, URSSAF, BOFiP (art. 80 duodecies CGI), justice.fr ; LFSS 2026 (contribution patronale de 40 %).
+   Périmètre : licenciement, inaptitude, rupture conventionnelle individuelle, mise à la retraite, départ volontaire, hors PSE, hors mandataire social. */
+const PASS_ANNUEL = { 2023:43992, 2024:46368, 2025:47100, 2026:48060 };
+const TAUX_CSG_CRDS = 0.097;   // CSG 9,2 % + CRDS 0,5 %, sans abattement sur l'indemnité
+function regimeSocialFiscal(p){
+  const { motif, total, legalConv, remN1, annee, droitRetraite, taux } = p;
+  const connu = PASS_ANNUEL[annee]!==undefined;
+  const pass = PASS_ANNUEL[annee] || PASS_ANNUEL[2026];
+  const lignes=[], alertes=[];
+  if(!connu) alertes.push(`PASS ${annee} non connu de l'outil : valeur 2026 (${fmtEur(pass)}) utilisée.`);
+  const I=total, L=Math.min(legalConv, I);
+  const out = { pass, annee, total:I, legalConv:L, supra:Math.max(0,I-L), lignes, alertes };
+  if(motif==='departRet'){
+    Object.assign(out,{ irExo:0, irImposable:I, cotisExo:0, cotisSoumis:I, csgExo:0, csgBase:I, contribBase:null, contrib:null });
+    lignes.push('Départ volontaire à la retraite (hors PSE) : indemnité assimilée à du salaire, soumise en totalité aux cotisations, à la CSG/CRDS et à l\'impôt sur le revenu.');
+  } else {
+    const plafVar = (motif==='miseRet' ? 5 : 6) * pass;
+    const seuilVar = Math.min(Math.max(2*remN1, I/2), plafVar);
+    const irExoFull = Math.min(I, Math.max(L, seuilVar));
+    const irExo = (motif==='rc' && droitRetraite) ? 0 : irExoFull;
+    const dix = I > 10*pass;
+    const cotisExo = dix ? 0 : Math.min(irExoFull, 2*pass);
+    const csgExo = dix ? 0 : Math.min(L, cotisExo);
+    lignes.push(`Exonération fiscale (art. 80 duodecies CGI) : plus élevé de l'indemnité légale ou conventionnelle (${fmtEur(L)}), de 2 × la rémunération brute N-1 (${fmtEur(2*remN1)}) et de 50 % de l'indemnité (${fmtEur(I/2)}), les deux derniers dans la limite de ${motif==='miseRet'?5:6} PASS (${fmtEur(plafVar)}) → ${fmtEur(irExoFull)}.`);
+    if(motif==='rc' && droitRetraite) lignes.push('Salarié en droit de bénéficier d\'une pension de retraite : indemnité de rupture conventionnelle imposable en totalité (le régime social reste inchangé).');
+    if(dix) lignes.push(`Indemnité supérieure à 10 PASS (${fmtEur(10*pass)}) : soumise aux cotisations et à la CSG/CRDS dès le premier euro.`);
+    else lignes.push(`Exonération de cotisations : fraction non imposable, dans la limite de 2 PASS (${fmtEur(2*pass)}) → ${fmtEur(cotisExo)}${motif==='rc'&&droitRetraite?' (apprécié comme si le salarié n\'avait pas droit à la retraite)':''}.`,
+      `Exonération de CSG/CRDS : plus petit de l'indemnité légale ou conventionnelle (${fmtEur(L)}) et de la fraction exonérée de cotisations → ${fmtEur(csgExo)}.`);
+    const contribOK = motif==='rc' || motif==='miseRet';
+    const contribBase = contribOK ? cotisExo : null;
+    Object.assign(out,{ irExo, irImposable:I-irExo, cotisExo, cotisSoumis:I-cotisExo, csgExo, csgBase:I-csgExo, contribBase,
+      contrib: contribOK && taux!==null ? r2(contribBase*taux) : null });
+    if(contribOK) lignes.push(`Contribution patronale spécifique de ${Math.round(taux*100)} % sur la fraction exonérée de cotisations (${fmtEur(cotisExo)}).`);
+  }
+  out.csgCrds = r2(out.csgBase*TAUX_CSG_CRDS);
+  return out;
+}
+
 /* ---------- calcul principal ---------- */
 function compute(inp){
   const out = { erreur:null, lignes:[], alertes:[], legal:null, conv:null, retenu:null, mois:0, fin:null, exprLegal:'', exprConv:'' };
@@ -1163,8 +1243,19 @@ function compute(inp){
     taux = (inp.taux!==undefined && inp.taux!=='' && inp.taux!==null) ? (+inp.taux)/100 : (toISO(sortie)>='2026-01-01' ? 0.4 : 0.3);
   }
   out.fin = { mode, retenuArrondi:base, supra, total, taux, contrib: contribOK ? r2(total*taux) : null, honoraires: inp.honoraires===''||inp.honoraires==null ? null : +inp.honoraires };
+  /* Régime social et fiscal : nécessite la rémunération brute de l'année civile précédente (sauf départ volontaire) */
+  const remN1 = inp.remN1===''||inp.remN1==null||isNaN(+inp.remN1) ? null : +inp.remN1;
+  if(total>0){
+    if(motif!=='departRet' && remN1===null) out.regime = { manque:'remN1' };
+    else {
+      out.regime = regimeSocialFiscal({ motif, total, legalConv:base, remN1:remN1||0, annee:sortie.getUTCFullYear(), droitRetraite:!!inp.droitRetraite, taux });
+      if(contribOK && remN1!==null){ out.fin.contribBase=out.regime.contribBase; out.fin.contrib=out.regime.contrib; }
+    }
+  }
   if(contribOK){
-    out.alertes.push(`Contribution patronale ${Math.round(taux*100)} % appliquée sur le total, comme dans vos fiches. En droit, elle porte sur la fraction exonérée de cotisations de sécurité sociale : la base peut être inférieure au total.`);
+    out.alertes.push(out.fin.contribBase!==undefined && out.fin.contribBase!==null
+      ? `Contribution patronale ${Math.round(taux*100)} % appliquée sur la fraction de l'indemnité exonérée de cotisations (${fmtEur(out.fin.contribBase)}), comme le prévoit la loi.`
+      : `Contribution patronale ${Math.round(taux*100)} % appliquée sur le total, comme dans vos fiches. En droit, elle porte sur la fraction exonérée de cotisations de sécurité sociale : renseignez la rémunération brute de l'année précédente pour la calculer.`);
     if(taux===0.3 && toISO(sortie)>='2026-01-01') out.alertes.push('Taux de 30 % saisi alors que la fin de contrat est en 2026 (40 % en principe).');
   }
   if(motif==='rc') out.alertes.push('Rupture conventionnelle : montant plancher. Les parties peuvent convenir d\'une indemnité supérieure (supra-légale).');
@@ -1172,7 +1263,7 @@ function compute(inp){
   return out;
 }
 
-if(typeof module!=='undefined') module.exports={ RC_DEFAUT, ageAt, compute, MOTIFS, ABS_TYPES, CCN, CCN_META, STATUT_LABEL, parseISO, monthsBetween, legalMois, salaireDepuisMois, calendrierRC, arrondir, toISO, addDays };
+if(typeof module!=='undefined') module.exports={ regimeSocialFiscal, PASS_ANNUEL, RC_DEFAUT, ageAt, compute, MOTIFS, ABS_TYPES, CCN, CCN_META, STATUT_LABEL, parseISO, monthsBetween, legalMois, salaireDepuisMois, calendrierRC, arrondir, toISO, addDays };
 
 /* ===== Import d'une « fiche individuelle » Silae (12 mois de référence) =====
    Entrée : tableau de lignes (sheet_to_json header:1). Sortie : lignes classées + calcul par mois.
@@ -1456,6 +1547,7 @@ if(typeof module!=='undefined') module.exports={ buildWorkbook };
 
 /* ===== Export PDF de la fiche (jsPDF) : blocs au choix, présentation client possible ===== */
 const PDF_BLOCS = [
+  { id:'auteur',   label:'Auteur du calcul (« Établi par »)' },
   { id:'ident',    label:'Salarié, motif et convention' },
   { id:'dates',    label:'Dates et ancienneté retenue' },
   { id:'absences', label:'Absences examinées pour l\'ancienneté' },
@@ -1465,13 +1557,15 @@ const PDF_BLOCS = [
   { id:'detail',   label:'Détail du calcul (formules et étapes)' },
   { id:'montants', label:'Indemnité retenue, arrondi et total' },
   { id:'contrib',  label:'Contribution patronale' },
+  { id:'regime',   label:'Régime social et fiscal' },
   { id:'hono',     label:'Honoraires du cabinet' },
   { id:'cal',      label:'Calendrier de la rupture conventionnelle' },
   { id:'alertes',  label:'Points d\'attention' },
+  { id:'notes',    label:'Notes et remarques' },
   { id:'regles',   label:'Règles appliquées et sources' }
 ];
 const PDF_PRESETS = {
-  client:  ['ident','dates','absences','cmp','montants','contrib','cal'],
+  client:  ['auteur','ident','dates','absences','cmp','montants','contrib','cal'],
   complet: PDF_BLOCS.map(b=>b.id)
 };
 
@@ -1489,8 +1583,14 @@ function buildPdf(JsPDF, d){
   const { S, r, rows, opts, MOTIFS, ccnNom, regles, cal, fmtEur, fmtMois, fr, fmtAnc, sr12, sr3 } = d;
   const sel = new Set(opts.sel);
   const doc = new JsPDF({ unit:'mm', format:'a4', compress:true });
-  const W=210, H=297, M=16, CW=W-2*M, FOOT=16;
-  const ACC=[13,102,86], ACCSOFT=[225,239,235], INK=[23,25,28], MUT=[110,112,108], LINE=[214,211,203], WARN=[185,75,25], WARNSOFT=[252,235,226], GREY=[240,238,233];
+  const W=210, M=16, CW=W-2*M, FOOT=16; let H = opts.single ? 100000 : 297; /* image : une seule page continue */
+  /* Deux styles : « site » (couleur choisie dans les paramètres) et « neutre » (noir et blanc, lisible à l'impression monochrome). */
+  const neutre = opts.style==='neutre';
+  const hx = h => [1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+  const mixc = (a,b,k) => a.map((v,i)=>Math.round(v*(1-k)+b[i]*k));
+  const BASE = hx(opts.accent||'#0d6656');
+  const ACC = neutre?[0,0,0]:BASE, ACCSOFT = neutre?[242,242,242]:mixc(BASE,[255,255,255],.88), INK = neutre?[0,0,0]:[23,25,28], MUT = neutre?[85,85,85]:[110,112,108],
+        LINE = neutre?[165,165,165]:[214,211,203], WARN = neutre?[0,0,0]:[185,75,25], WARNSOFT = neutre?[255,255,255]:[252,235,226], GREY = neutre?[232,232,232]:[240,238,233], CARD = neutre?[255,255,255]:[250,249,246];
   let y=M;
   const san = pdfSan;
   const font = (style,size,color)=>{ doc.setFont('helvetica',style); doc.setFontSize(size); doc.setTextColor(color[0],color[1],color[2]); };
@@ -1528,7 +1628,7 @@ function buildPdf(JsPDF, d){
   /* ---------- En-tête ---------- */
   const nomComplet = ((S.nom||'')+' '+(S.prenom||'')).trim();
   if(opts.entete){ font('normal',8.5,MUT); doc.text(san(opts.entete), M, y+3); }
-  font('normal',8.5,MUT); doc.text(san('Établi le '+d.dateJour), W-M, y+3, {align:'right'});
+  font('normal',8.5,MUT); doc.text(san('Établi le '+d.dateJour+(sel.has('auteur')&&(S.auteur||'').trim()?' par '+S.auteur.trim():'')), W-M, y+3, {align:'right'});
   y+=7;
   font('bold',17,INK); const tl=doc.splitTextToSize(san(opts.titre || ('Calcul d\'indemnité'+(nomComplet?' - '+nomComplet:''))), CW);
   tl.forEach(l=>{ doc.text(l, M, y+6); y+=7.4; });
@@ -1609,7 +1709,7 @@ function buildPdf(JsPDF, d){
     const heights = cards.map(c=>doc.splitTextToSize(san(c.x), colW-8).length*lhOf(8.4)+19);
     const h=Math.max(...heights); ensure(h+2);
     cards.forEach((c,i)=>{
-      const x=M+i*(colW+4); box(x,colW,y,h,c.win?ACCSOFT:[250,249,246],c.win?ACC:LINE,c.win?0.5:0.25);
+      const x=M+i*(colW+4); box(x,colW,y,h,c.win?ACCSOFT:CARD,c.win?ACC:LINE,c.win?0.5:0.25);
       font('normal',8.6,c.win?ACC:MUT); doc.text(san(c.t+(c.win?' - retenu':'')), x+4, y+5.5);
       font('bold',13,INK); doc.text(san(c.v), x+4, y+12.5);
       font('normal',8.4,MUT); doc.splitTextToSize(san(c.x), colW-8).forEach((l,k)=>doc.text(l, x+4, y+17.5+k*lhOf(8.4)));
@@ -1639,6 +1739,14 @@ function buildPdf(JsPDF, d){
   if(sel.has('hono') && !r.erreur && r.fin.honoraires!==null && !isNaN(r.fin.honoraires)){
     section('Honoraires'); kv('Honoraires', fmtEur(r.fin.honoraires), {bold:true});
   }
+  if(sel.has('regime') && !r.erreur && r.regime){
+    const g=r.regime; section('Régime social et fiscal');
+    if(g.manque){ para('Rémunération brute de l\'année civile précédente non renseignée : fractions non calculées.', {color:MUT}); }
+    else {
+      (d.regimeRows||[]).forEach(([l,v])=>kv(l, fmtEur(v)));
+      para('Cotisations salariales et impôt sur le revenu non calculés. Hors PSE et mandataires sociaux. PASS '+g.annee+' : '+fmtEur(g.pass)+'. Calcul indicatif, à valider sur le BOSS.', {size:8.5,color:MUT});
+    }
+  }
   /* ---------- 7. Calendrier ---------- */
   if(sel.has('cal') && S.motif==='rc' && cal && !cal.erreur){
     const o=cal.options, L=d.frL;
@@ -1660,6 +1768,9 @@ function buildPdf(JsPDF, d){
     section('Points d\'attention');
     r.alertes.forEach(a=>bullet(a));
   }
+  if(sel.has('notes') && (S.notes||'').trim()){
+    section('Notes et remarques'); (S.notes||'').trim().split(/\n+/).forEach(l=>para(l,{size:9.5,gap:1}));
+  }
   /* ---------- 9. Règles ---------- */
   if(sel.has('regles')){
     section('Règles appliquées et sources');
@@ -1674,6 +1785,8 @@ function buildPdf(JsPDF, d){
   }
 
   /* ---------- Pieds de page ---------- */
+  if(opts.single){ H = y+FOOT; }
+  doc.contentHeight = H;
   const n=doc.getNumberOfPages(), note=opts.note||'Calcul indicatif, à valider avant toute utilisation. Montants bruts.';
   for(let p=1;p<=n;p++){
     doc.setPage(p); doc.setDrawColor(LINE[0],LINE[1],LINE[2]); doc.setLineWidth(0.2); doc.line(M,H-12,W-M,H-12);
@@ -1682,7 +1795,67 @@ function buildPdf(JsPDF, d){
   return doc;
 }
 
-if(typeof module!=='undefined') module.exports={ buildPdf, PDF_BLOCS, PDF_PRESETS, pdfSan };
+
+/* ===== Rendu image : même mise en page que le PDF, dessinée sur un canvas (une seule page continue) =====
+   Imite la partie de l'API jsPDF utilisée par buildPdf. Les unités sont des millimètres, comme dans le PDF. */
+function makeCanvasDoc(scale){
+  const mcv = (typeof document!=='undefined') ? document.createElement('canvas') : null;
+  const mctx = mcv ? mcv.getContext('2d') : null;
+  const st = { font:'helvetica', style:'normal', size:10, text:[0,0,0], draw:[0,0,0], fill:[255,255,255], lw:0.2 };
+  const ops = []; let maxY = 0;
+  const PT = 25.4/72;
+  const fontStr = (k,s) => (s.style==='bold'?'bold ':'') + (s.size*PT*k).toFixed(2) + 'px Helvetica, Arial, "Liberation Sans", sans-serif';
+  const rgb = a => 'rgb('+a[0]+','+a[1]+','+a[2]+')';
+  const snap = () => ({ ...st, text:st.text.slice(), draw:st.draw.slice(), fill:st.fill.slice() });
+  const measure = s => { mctx.font = fontStr(scale, st); return mctx.measureText(s).width/scale; };
+  const rr = (c,x,y,w,h,r) => { c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); };
+  const doc = {
+    setFont(n,s){ st.style = s==='bold' ? 'bold' : 'normal'; return doc; },
+    setFontSize(s){ st.size=s; return doc; },
+    setTextColor(r,g,b){ st.text=[r,g,b]; return doc; },
+    setDrawColor(r,g,b){ st.draw=[r,g,b]; return doc; },
+    setFillColor(r,g,b){ st.fill=[r,g,b]; return doc; },
+    setLineWidth(w){ st.lw=w; return doc; },
+    splitTextToSize(text,maxW){
+      const out=[];
+      String(text).split('\n').forEach(par=>{
+        const words=par.split(' '); let cur='';
+        words.forEach(w=>{ const t=cur?cur+' '+w:w; if(cur && measure(t)>maxW){ out.push(cur); cur=w; } else cur=t;
+          while(measure(cur)>maxW && cur.length>1){ let n=cur.length; while(n>1 && measure(cur.slice(0,n))>maxW) n--; out.push(cur.slice(0,n)); cur=cur.slice(n); } /* mot trop long (adresse web) : coupé */ });
+        out.push(cur);
+      });
+      return out;
+    },
+    text(str,x,y,o){
+      o=o||{}; const s=snap();
+      const lines = o.maxWidth ? doc.splitTextToSize(str,o.maxWidth) : [String(str)];
+      lines.forEach((l,i)=>{ const yy=y+i*s.size*PT*1.2; if(yy>maxY) maxY=yy+1;
+        ops.push((c,k)=>{ c.font=fontStr(k,s); c.fillStyle=rgb(s.text); c.textAlign=o.align==='right'?'right':'left'; c.textBaseline='alphabetic'; c.fillText(l,x*k,yy*k); }); });
+      return doc;
+    },
+    line(x1,y1,x2,y2){ const s=snap(); if(y2>maxY) maxY=y2;
+      ops.push((c,k)=>{ c.strokeStyle=rgb(s.draw); c.lineWidth=Math.max(1,s.lw*k); c.beginPath(); c.moveTo(x1*k,y1*k); c.lineTo(x2*k,y2*k); c.stroke(); }); return doc; },
+    rect(x,y,w,h,style){ const s=snap(); if(y+h>maxY) maxY=y+h;
+      ops.push((c,k)=>{ if(/F/.test(style||'')){ c.fillStyle=rgb(s.fill); c.fillRect(x*k,y*k,w*k,h*k); } if(/D/.test(style||'') || !style){ c.strokeStyle=rgb(s.draw); c.lineWidth=Math.max(1,s.lw*k); c.strokeRect(x*k,y*k,w*k,h*k); } }); return doc; },
+    roundedRect(x,y,w,h,rx,ry,style){ const s=snap(); if(y+h>maxY) maxY=y+h;
+      ops.push((c,k)=>{ rr(c,x*k,y*k,w*k,h*k,rx*k); if(/F/.test(style||'')){ c.fillStyle=rgb(s.fill); c.fill(); } if(/D/.test(style||'')){ c.strokeStyle=rgb(s.draw); c.lineWidth=Math.max(1,s.lw*k); c.stroke(); } }); return doc; },
+    addPage(){ return doc; }, setPage(){ return doc; }, getNumberOfPages(){ return 1; },
+    /* Dessine l'ensemble ; réduit la définition si l'image dépasserait les limites des navigateurs. */
+    toCanvas(widthMm){
+      const H = Math.max(doc.contentHeight||maxY+16, 40);
+      let k = scale; const LIM = 15000; if(H*k>LIM) k = LIM/H;
+      const cv = document.createElement('canvas'); cv.width=Math.round(widthMm*k); cv.height=Math.round(H*k);
+      const c = cv.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,cv.width,cv.height);
+      ops.forEach(f=>f(c,k)); return cv;
+    }
+  };
+  return doc;
+}
+function canvasToBlob(cv, type, q){
+  return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('toBlob')), type||'image/png', q));
+}
+
+if(typeof module!=='undefined') module.exports={ buildPdf, PDF_BLOCS, PDF_PRESETS, pdfSan, makeCanvasDoc };
 
 /* Cas de test chiffrés, calculés à la main (mois de salaire × salaire de référence). */
 const TESTS = [
@@ -1843,7 +2016,35 @@ const TESTS = [
     inp:{motif:'lic',ccn:'1486',categorie:'etam',entree:'2016-01-01',sortie:'2025-12-31',sr12:2000,sr3:2000,absences:[{type:'maladie',jours:200}]}, mois:113, legal:4708.33, conv:4708.33, retenu:4708.33, calcul:'120 mois − 200 j (≈ 6,6 mois) → 113 mois ; 113/12 × 1/4 = 2,3542 mois × 2 000' },
 ];
 
-if(typeof module!=='undefined') module.exports={ TESTS };
+/* ---- Régime social et fiscal (V2.9) : cas calculés à la main ; PASS 2023 : 43 992 € · 2025 : 47 100 € · 2026 : 48 060 € ---- */
+const REGIME_TESTS = [
+  { nom:'RC 2025, 9 180 € + supra 1 500 €, rémunération N-1 30 000 € : tout exonéré sauf CSG/CRDS sur la supra-légale',
+    p:{motif:'rc',total:10680,legalConv:9180,remN1:30000,annee:2025,droitRetraite:false,taux:0.3},
+    att:{irExo:10680,irImposable:0,cotisExo:10680,csgExo:9180,csgBase:1500,csgCrds:145.5,contrib:3204}, calcul:'2 × 30 000 = 60 000 > 10 680 ; PASS 2025 = 47 100 ; CSG/CRDS 9,7 % × 1 500 ; 30 % × 10 680' },
+  { nom:'RC 2025, salarié en droit de bénéficier d\'une pension de retraite : imposable en totalité, régime social inchangé',
+    p:{motif:'rc',total:10680,legalConv:9180,remN1:30000,annee:2025,droitRetraite:true,taux:0.3},
+    att:{irExo:0,irImposable:10680,cotisExo:10680,csgExo:9180,csgBase:1500,contrib:3204}, calcul:'BOSS : cotisations appréciées comme si le salarié n\'avait pas droit à la retraite' },
+  { nom:'Licenciement 2026, 120 000 € dont 70 000 € conventionnels, rémunération N-1 40 000 € (exemple justice.fr)',
+    p:{motif:'lic',total:120000,legalConv:70000,remN1:40000,annee:2026,droitRetraite:false,taux:null},
+    att:{irExo:80000,irImposable:40000,cotisExo:80000,csgExo:70000,csgBase:50000,csgCrds:4850,contrib:null}, calcul:'max(70 000 ; 2 × 40 000 = 80 000 ; 60 000) = 80 000 ; CSG/CRDS sur 120 000 − 70 000' },
+  { nom:'Mise à la retraite 2023, 120 000 € (légal ou conventionnel 100 000 €), rémunération N-1 70 000 € : plafond de 2 PASS',
+    p:{motif:'miseRet',total:120000,legalConv:100000,remN1:70000,annee:2023,droitRetraite:false,taux:0.3},
+    att:{irExo:120000,irImposable:0,cotisExo:87984,csgExo:87984,csgBase:32016,csgCrds:3105.55,contrib:26395.2}, calcul:'2 PASS 2023 = 87 984 ; 30 % × 87 984' },
+  { nom:'RC 2026 de 500 000 € : au-delà de 10 PASS (480 600 €), soumise dès le premier euro ; plus de contribution patronale',
+    p:{motif:'rc',total:500000,legalConv:20000,remN1:100000,annee:2026,droitRetraite:false,taux:0.4},
+    att:{irExo:250000,irImposable:250000,cotisExo:0,csgExo:0,csgBase:500000,contrib:0}, calcul:'max(20 000 ; min(max(200 000 ; 250 000) ; 6 PASS)) = 250 000' },
+  { nom:'Licenciement 2026 de 150 000 € : exonération de cotisations limitée à 2 PASS (96 120 €)',
+    p:{motif:'lic',total:150000,legalConv:30000,remN1:100000,annee:2026,droitRetraite:false,taux:null},
+    att:{irExo:150000,irImposable:0,cotisExo:96120,csgExo:30000,csgBase:120000}, calcul:'2 × 100 000 = 200 000 > 150 000 ; min(150 000 ; 96 120)' },
+  { nom:'Mise à la retraite 2026 de 400 000 € : plafond fiscal de 5 PASS (240 300 €)',
+    p:{motif:'miseRet',total:400000,legalConv:10000,remN1:200000,annee:2026,droitRetraite:false,taux:0.4},
+    att:{irExo:240300,irImposable:159700,cotisExo:96120,csgExo:10000,contrib:38448}, calcul:'min(max(400 000 ; 200 000) ; 240 300) ; 40 % × 96 120' },
+  { nom:'Départ volontaire à la retraite : soumis aux cotisations, à la CSG/CRDS et à l\'impôt dès le premier euro',
+    p:{motif:'departRet',total:3000,legalConv:3000,remN1:0,annee:2025,droitRetraite:false,taux:null},
+    att:{irExo:0,irImposable:3000,cotisExo:0,cotisSoumis:3000,csgBase:3000,csgCrds:291,contrib:null}, calcul:'9,7 % × 3 000' }
+];
+
+if(typeof module!=='undefined') module.exports={ TESTS, REGIME_TESTS };
 
 /* Recoupement automatique avec le simulateur « Indemnité de licenciement » du Code du travail numérique (généré par compare3.js + gen-croisement.js, rejouable). */
 const CROISEMENT = {"retraite":{"n":68,"ko":0},"date":"21/11/2026","version":"@socialgouv/modeles-social 4.253.1","grille":"ancienneté de 1 à 32 ans (années pleines et demi-années), âge de 40 et 58 ans, salaire de référence de 2 500 €, chaque catégorie proposée, réponse « non » aux autres questions (sauf ancienneté de cadre : « oui »)","data":{"1043":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1090":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1147":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1483":{"n":48,"st":"neutre","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"1486":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"1501":{"n":48,"st":"assume","ex":[{"an":8,"age":40,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":8,"age":58,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":10,"age":40,"cat":"cadre","moi":6250,"off":7500,"nm":false},{"an":10,"age":58,"cat":"cadre","moi":6250,"off":7500,"nm":false},{"an":12,"age":40,"cat":"cadre","moi":7916.67,"off":8500,"nm":false},{"an":12,"age":58,"cat":"cadre","moi":7916.67,"off":8500,"nm":false}],"note":"Cadres : le moteur suit le texte de l'article 13 (2/15 de mois par année de 10 à 15 ans). Le simulateur officiel applique la majoration de 2/15 aux années de 5 à 10 ans et la cumule dès 5 ans (anomalie probable du modèle publicodes). À signaler au Code du travail numérique.","eco":{"n":48,"ko":8,"ex":[{"an":8,"age":40,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":8,"age":58,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":10,"age":40,"cat":"cadre","moi":6250,"off":7500,"nm":false},{"an":10,"age":58,"cat":"cadre","moi":6708.33,"off":7500,"nm":false}]}},"1505":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1517":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1518":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1527":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1596":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1597":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1619":{"n":0,"st":"non_couvert","ex":[]},"1979":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1996":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"2098":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"2216":{"n":72,"st":"concordant","ex":[],"eco":{"n":72,"ko":0,"ex":[]}},"2420":{"n":0,"st":"non_couvert","ex":[]},"2511":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"2596":{"n":120,"st":"concordant","ex":[],"eco":{"n":120,"ko":0,"ex":[]}},"2609":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"3043":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"3127":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"3248":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"7018":{"n":0,"st":"non_couvert","ex":[]},"7024":{"n":0,"st":"non_couvert","ex":[]},"0016":{"n":96,"st":"assume","ex":[{"an":3,"age":40,"cat":"cadre","moi":3000,"off":1875,"nm":false},{"an":3,"age":58,"cat":"cadre","moi":3000,"off":1875,"nm":false}],"note":"Cadres à exactement 3 ans d'ancienneté : le texte (art. 17, annexe IV) exige « au moins 3 années de présence » et le moteur applique 4/10 par année ; le simulateur officiel exige plus de 3 ans.","eco":{"n":96,"ko":2,"ex":[{"an":3,"age":40,"cat":"cadre","moi":3000,"off":1875,"nm":false},{"an":3,"age":58,"cat":"cadre","moi":3000,"off":1875,"nm":false}]}},"0573":{"n":72,"st":"neutre","ex":[],"eco":{"n":72,"ko":0,"ex":[]}},"0843":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"0787":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"0045":{"n":0,"st":"non_couvert","ex":[]}}};
@@ -2042,9 +2243,28 @@ RULES_DOC.push(
 /* ---------- Etat ---------- */
 const $ = id => document.getElementById(id);
 const blankMois = () => Array.from({length:12},()=>({brut:'',recon:'',inclus:true,note:''}));
-const DEFAULT = () => ({ id:null, nom:'', prenom:'', emploi:'', classif:'', statut:'', motif:'rc', ccn:'1090', categorie:'etam', age:'', naissance:'', ageRef:'sortie',
-  entree:'2015-09-14', sortie:'2025-10-31', dateRef:'2025-09-04', absences:[], mois:blankMois().map(m=>({...m,brut:'2200'})),
-  eco:false, supra:'', taux:'', honoraires:'370', arrondi:'', remCcn:'', remAbs:'', cal:{...RC_DEFAUT} });
+/* ---------- Paramètres (mémorisés dans ce navigateur) ---------- */
+const PRKEY='indemnites-params-v1';
+const COULEURS=[['sapin','Vert sapin','#0d6656'],['canard','Bleu canard','#0e6577'],['bleu','Bleu','#2160a5'],['ardoise','Ardoise','#3d5a78'],['violet','Violet','#5b4a9e'],['bordeaux','Bordeaux','#8f2b4b'],['ocre','Ocre','#9a5316'],['graphite','Graphite','#3b4046']];
+let PARAMS = (()=>{ try{ const o=JSON.parse(localStorage.getItem(PRKEY)||'null'); if(o&&typeof o==='object') return Object.assign({auteur:'',couleur:'sapin',hono:{}},o,{hono:Object.assign({},o.hono)}); }catch(e){} return {auteur:'',couleur:'sapin',hono:{}}; })();
+function saveParams(){ try{ localStorage.setItem(PRKEY,JSON.stringify(PARAMS)); }catch(e){} }
+const honoDefaut = motif => { const v=PARAMS.hono[motif]; return v==null?'':String(v); };
+const couleurHex = () => (COULEURS.find(c=>c[0]===PARAMS.couleur)||COULEURS[0])[2];
+const hex2rgb = h => [1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const mixHex = (a,b,k) => '#'+hex2rgb(a).map((v,i)=>Math.round(v*(1-k)+hex2rgb(b)[i]*k).toString(16).padStart(2,'0')).join('');
+function applyTheme(){
+  const base=couleurHex(), st=document.documentElement.style;
+  const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if(PARAMS.couleur==='sapin' || !COULEURS.some(c=>c[0]===PARAMS.couleur)){ ['--accent','--accent-2','--accent-soft','--accent-ink'].forEach(k=>st.removeProperty(k)); }
+  else if(dark){ st.setProperty('--accent',mixHex(base,'#ffffff',.32)); st.setProperty('--accent-2',mixHex(base,'#ffffff',.45)); st.setProperty('--accent-soft',mixHex(base,'#141513',.78)); st.setProperty('--accent-ink','#0b1210'); }
+  else { st.setProperty('--accent',base); st.setProperty('--accent-2',mixHex(base,'#000000',.2)); st.setProperty('--accent-soft',mixHex(base,'#ffffff',.88)); st.setProperty('--accent-ink','#ffffff'); }
+  const m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content',base);
+}
+applyTheme();
+try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme); }catch(e){}
+const DEFAULT = () => ({ id:null, nom:'', prenom:'', emploi:'', classif:'', statut:'', motif:'rc', ccn:'none', categorie:'etam', age:'', naissance:'', ageRef:'sortie',
+  entree:'', sortie:'', dateRef:'', absences:[], mois:blankMois(),
+  eco:false, supra:'', remN1:'', droitRetraite:false, taux:'', honoraires:honoDefaut('rc'), honoAuto:true, auteur:PARAMS.auteur||'', arrondi:'', remCcn:'', remAbs:'', notes:'', cal:{...RC_DEFAUT} });
 let S = DEFAULT();
 
 const monthDates = () => {
@@ -2060,7 +2280,7 @@ function inpFromS(){
 }
 
 /* ---------- Formulaire ---------- */
-const TXT = ['nom','prenom','emploi','classif','statut','naissance','ageRef','age','entree','sortie','dateRef','supra','taux','honoraires','arrondi','remCcn','remAbs','motif','ccn','categorie'];
+const TXT = ['nom','prenom','emploi','classif','statut','naissance','ageRef','age','entree','sortie','dateRef','supra','remN1','taux','honoraires','arrondi','remCcn','remAbs','notes','auteur','motif','ccn','categorie'];
 function initForm(){
   $('motif').innerHTML = Object.entries(MOTIFS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
   $('ccn').innerHTML = '<option value="none">Code du travail seul (sans convention)</option>' + ccnEntries().map(e=>`<option value="${e.id}">${e.rang?String(e.rang).padStart(2,'0')+' · ':''}${e.court} — ${e.id}${e.statut==='legal'?' (légal appliqué)':''}</option>`).join('');
@@ -2068,7 +2288,7 @@ function initForm(){
 }
 function push(){
   TXT.forEach(k=>{ const el=$(k); if(el && el.type!=='checkbox') el.value = S[k]==null?'':S[k]; });
-  $('eco').checked=!!S.eco; syncCcnFields(); renderAbs(); renderMonths(); buildCalCtl();
+  $('eco').checked=!!S.eco; $('droitRetraite').checked=!!S.droitRetraite; syncCcnFields(); renderAbs(); renderMonths(); buildCalCtl();
 }
 function syncCcnFields(){
   const c = CCN[S.ccn];
@@ -2080,6 +2300,7 @@ function syncCcnFields(){
     $('categorie').value=S.categorie;
   }
   $('w-eco').hidden = S.motif!=='lic';
+  $('w-droit').hidden = S.motif!=='rc';
   const rc = S.motif==='rc';
   $('ref-lab').textContent = rc ? 'Date de signature' : 'Date de notification';
 }
@@ -2115,7 +2336,17 @@ function updateAvgs(){
 /* ---------- Résultat ---------- */
 let lastText='';
 const fr = iso => iso ? iso.split('-').reverse().join('/') : '';
+function regimeRows(r){
+  const g=r.regime, f=r.fin; if(!g||g.manque) return [];
+  const rows=[['Fraction exonérée d\'impôt sur le revenu',g.irExo],['Fraction imposable',g.irImposable],['Exonérée de cotisations sociales',g.cotisExo],['Soumise à cotisations sociales',g.cotisSoumis],['Base de CSG/CRDS (9,7 %)',g.csgBase],['CSG/CRDS à la charge du salarié',g.csgCrds]];
+  if(g.contrib!==null) rows.push([`Contribution patronale ${Math.round(f.taux*100)} % (sur ${fmtEur(g.contribBase)})`,g.contrib]);
+  return rows;
+}
+function applyHonoAuto(){
+  if(S.honoAuto || S.honoraires===''|| S.honoraires==null){ S.honoraires=honoDefaut(S.motif); S.honoAuto=true; $('honoraires').value=S.honoraires; }
+}
 function render(){
+  $('hono-hint').textContent = S.honoAuto && S.honoraires!=='' ? 'Montant par défaut pour ce motif (onglet Paramètres), modifiable ici.' : '';
   const r = compute(inpFromS());
   $('anc').innerHTML = r.mois||!r.erreur||r.mois===0 ? (parseISO(S.entree)&&parseISO(S.sortie)&&parseISO(S.sortie)>=parseISO(S.entree) ? `Ancienneté retenue <b>${fmtAnc(r.mois)}</b> <span class="hint" style="margin:0">du ${fr(S.entree)} au ${fr(S.sortie)}</span>` : 'Ancienneté : renseignez les dates.') : 'Ancienneté : renseignez les dates.';
   renderAge(r);
@@ -2135,6 +2366,19 @@ function render(){
   if(f.supra>0) fin += `<div><span>Supra-légale</span><b>${fmtEur(f.supra)}</b></div><div class="tot"><span>Total</span><b>${fmtEur(f.total)}</b></div>`;
   if(f.taux!==null) fin += `<div><span>Contribution patronale ${Math.round(f.taux*100)} %</span><b>${fmtEur(f.contrib)}</b></div>`;
   if(f.honoraires!==null && !isNaN(f.honoraires)) fin += `<div><span>Honoraires</span><b>${fmtEur(f.honoraires)}</b></div>`;
+  let regHtml='', regTxt=[];
+  if(r.regime){
+    const g=r.regime;
+    if(g.manque){ regHtml=`<div class="sec"><h3>Régime social et fiscal</h3><div class="hint">Renseignez la rémunération brute de l'année civile précédente (encadré 5) pour afficher les fractions exonérées et soumises.</div></div>`; }
+    else {
+      const rows=regimeRows(r);
+      regHtml=`<div class="sec"><h3>Régime social et fiscal</h3><div class="kvl">${rows.map(([l,v])=>`<div><span>${l}</span><b>${fmtEur(v)}</b></div>`).join('')}</div>
+        ${g.supra>0?`<div class="hint" style="margin-top:6px">Supra-légale de ${fmtEur(g.supra)} : elle entre dans la masse et suit les mêmes seuils ; la part qui dépasse l'indemnité légale ou conventionnelle supporte la CSG/CRDS.</div>`:''}
+        <details style="margin-top:8px"><summary class="hint" style="cursor:pointer">Détail des règles appliquées (PASS ${g.annee} : ${fmtEur(g.pass)})</summary><ul class="plain" style="font-size:12.5px;margin-top:6px">${g.lignes.map(l=>`<li>${l}</li>`).join('')}${g.alertes.map(l=>`<li>${l}</li>`).join('')}</ul></details>
+        <div class="hint" style="margin-top:6px">Cotisations salariales et impôt sur le revenu non calculés (taux et foyer fiscal propres à chaque salarié). Hors PSE et mandataires sociaux. À valider sur le BOSS.</div></div>`;
+      regTxt=['','Régime social et fiscal :',...rows.map(([l,v])=>`- ${l} : ${fmtEur(v)}`)];
+    }
+  }
   const formule = `Légal : MAX(moy.12 ; moy.3) × (${r.exprLegal})` + (r.exprConv ? `\nCCN : ${r.conv.baseKey==='sr12'?'moy.12':'MAX(moy.12 ; moy.3)'} × (${r.exprConv})` : '');
   const al = r.alertes.map((a,i)=>`<div class="alert${i===r.alertes.length-1?' neutral':''}">${a}</div>`).join('');
   box.innerHTML = `
@@ -2143,14 +2387,17 @@ function render(){
      <div class="res-sub">${f.retenuArrondi? `Base ${r.retenu.source}${f.supra>0?' + supra-légale':''}` : 'Aucune indemnité due selon ces données'} · ${ccnTxt}</div></div>
    <div class="cmp">${cmp}</div>
    <div class="sec"><h3>Montants</h3><div class="kvl">${fin}</div><div class="formula">${formule.replace(/\n/g,'<br>')}</div></div>
+   ${regHtml}
    <div class="sec"><h3>Détail du calcul</h3><ol class="steps">${steps}<li>${r.legal.texte}</li>${r.conv?r.conv.lignes.map(l=>`<li>${l}</li>`).join(''):''}<li><b>Retenu : ${fmtEur(r.retenu.montant)}</b> (${r.retenu.source})</li></ol></div>
    <div class="sec"><h3>Points d'attention</h3><div class="alerts">${al}</div></div>
    <div class="sec"><button class="btn primary" id="copy" type="button">Copier le détail</button><span class="hint" id="copy-msg" style="margin-left:8px"></span><textarea class="copybox" id="copybox" hidden readonly></textarea></div>`;
-  lastText = [`${S.nom||''} ${S.prenom||''} — ${motifTxt}`.trim(), `Convention : ${ccnTxt}`, `Du ${fr(S.entree)} au ${fr(S.sortie)}`, '',
+  lastText = [`${S.nom||''} ${S.prenom||''} — ${motifTxt}`.trim(), ...((S.auteur||'').trim()?['Calcul établi par '+S.auteur.trim()]:[]), `Convention : ${ccnTxt}`, `Du ${fr(S.entree)} au ${fr(S.sortie)}`, '',
     ...r.lignes, r.legal.texte, ...(r.conv?r.conv.lignes:[]), '', formule, '', `Indemnité retenue : ${fmtEur(f.retenuArrondi)}`,
     ...(f.supra>0?[`Supra-légale : ${fmtEur(f.supra)}`,`Total : ${fmtEur(f.total)}`]:[]),
     ...(f.taux!==null?[`Contribution patronale ${Math.round(f.taux*100)} % : ${fmtEur(f.contrib)}`]:[]),
-    '', 'Points d\'attention :', ...r.alertes.map(a=>'- '+a)].join('\n');
+    ...regTxt,
+    '', 'Points d\'attention :', ...r.alertes.map(a=>'- '+a),
+    ...((S.notes||'').trim()?['','Notes :',(S.notes||'').trim()]:[])].join('\n');
 }
 const calCfg = () => Object.assign({}, RC_DEFAUT, S.cal||{});
 const CAL_MODES = [['sig','Signature'],['ent','Entretien'],['ret','Fin de rétractation'],['rup','Rupture souhaitée']];
@@ -2360,7 +2607,7 @@ function loadXlsx(){
 /* ---------- Export PDF ---------- */
 const PKEY='indemnites-pdf-v1';
 const PDF_NOTE_DEF='Calcul indicatif, à valider avant toute utilisation. Montants bruts.';
-let PDFS = (()=>{ try{ const o=JSON.parse(localStorage.getItem(PKEY)||'null'); if(o&&Array.isArray(o.sel)) return Object.assign({entete:'',note:PDF_NOTE_DEF},o); }catch(e){} return { sel:PDF_PRESETS.client.slice(), entete:'', note:PDF_NOTE_DEF }; })();
+let PDFS = (()=>{ try{ const o=JSON.parse(localStorage.getItem(PKEY)||'null'); if(o&&Array.isArray(o.sel)) return Object.assign({entete:'',note:PDF_NOTE_DEF,style:'site'},o); }catch(e){} return { sel:PDF_PRESETS.client.slice(), entete:'', note:PDF_NOTE_DEF, style:'site' }; })();
 function savePdfS(){ try{ localStorage.setItem(PKEY,JSON.stringify(PDFS)); }catch(e){} }
 function pdfMsg(t){ $('pdf-msg').textContent=t; }
 function renderPdfPanel(){
@@ -2369,7 +2616,7 @@ function renderPdfPanel(){
     const na = b.id==='cal' && !calOk;
     return `<label class="${na?'off':''}"><input type="checkbox" data-pb="${b.id}"${PDFS.sel.includes(b.id)?' checked':''}${na?' disabled':''}><span>${b.label}${na?' <i>(rupture conventionnelle seulement)</i>':''}</span></label>`;
   }).join('');
-  $('pdf-entete').value=PDFS.entete||''; $('pdf-note').value=PDFS.note==null?PDF_NOTE_DEF:PDFS.note;
+  $('pdf-style').value=PDFS.style||'site'; $('pdf-entete').value=PDFS.entete||''; $('pdf-note').value=PDFS.note==null?PDF_NOTE_DEF:PDFS.note;
 }
 let pdfLoading=null;
 function loadJsPdf(){
@@ -2385,10 +2632,10 @@ function pdfData(r){
   const f = r.fin;
   const formule = r.erreur ? '' : `Légal : MAX(moy.12 ; moy.3) × (${r.exprLegal})` + (r.exprConv ? `\nCCN : ${r.conv.baseKey==='sr12'?'moy.12':'MAX(moy.12 ; moy.3)'} × (${r.exprConv})` : '');
   const regles = RULES_DOC.filter(d=>d.id===S.ccn || d.id==='cdt');
-  return { S, r, rows:monthRows(), opts:{ sel:PDFS.sel, titre:$('pdf-titre').value.trim(), entete:PDFS.entete, note:PDFS.note },
+  return { S, r, rows:monthRows(), opts:{ style:PDFS.style||'site', accent:couleurHex(), sel:PDFS.sel, titre:$('pdf-titre').value.trim(), entete:PDFS.entete, note:PDFS.note },
     MOTIFS, ccnNom: S.ccn==='none'?'':c.nom, regles, cal:calendrierRC(S.dateRef, calCfg()), frL, fmtEur, fr, fmtAnc,
     sr12:sal.sr12, sr3:sal.sr3, categorieLabel:cat||'', ageTxt:r.age!=null?r.age+' ans'+(r.ageSource==='naissance'?' (né le '+fr(S.naissance)+')':''):'', formule,
-    dateJour: new Date().toLocaleDateString('fr-FR') };
+    regimeRows: regimeRows(r), dateJour: new Date().toLocaleDateString('fr-FR') };
 }
 async function exportPdf(){
   const r = compute(inpFromS());
@@ -2402,6 +2649,42 @@ async function exportPdf(){
     await saveFile(fname('pdf'), doc.output('blob'));
   }catch(e){ pdfMsg('Erreur de génération : '+(e&&e.message||e)); }
 }
+async function buildImageBlob(){
+  const r = compute(inpFromS());
+  if(r.erreur && PDFS.sel.some(x=>['cmp','detail','montants','contrib','regime','hono','alertes'].includes(x))){ pdfMsg(r.erreur); return null; }
+  if(!PDFS.sel.length){ pdfMsg('Cochez au moins un bloc.'); return null; }
+  const d = pdfData(r); d.opts.single = true;
+  const doc = buildPdf(function(){ return makeCanvasDoc(7); }, d);
+  const cv = doc.toCanvas(210);
+  return await canvasToBlob(cv,'image/png');
+}
+async function exportImage(){
+  pdfMsg('Préparation de l\'image…');
+  try{ const b = await buildImageBlob(); if(!b) return; pdfMsg(''); await saveFile(fname('png'), b); }
+  catch(e){ pdfMsg('Erreur de génération : '+(e&&e.message||e)); }
+}
+async function copyImage(){
+  pdfMsg('Préparation de l\'image…');
+  try{
+    const b = await buildImageBlob(); if(!b) return;
+    if(!navigator.clipboard || !window.ClipboardItem){ pdfMsg('Copie impossible dans ce navigateur : utilisez « Générer l\'image ».'); return; }
+    await navigator.clipboard.write([new ClipboardItem({'image/png':b})]); pdfMsg('Image copiée dans le presse-papiers.');
+  }catch(e){ pdfMsg('Copie refusée par le navigateur : utilisez « Générer l\'image ».'); }
+}
+function renderParams(){
+  const cur = COULEURS.find(c=>c[0]===PARAMS.couleur)||COULEURS[0];
+  $('sw').innerHTML = COULEURS.map(c=>`<button type="button" data-col="${c[0]}" style="background:${c[2]}" title="${c[1]}" aria-label="${c[1]}" aria-pressed="${c[0]===cur[0]}"></button>`).join('');
+  $('sw-lab').textContent = cur[1]+' · sur cet appareil';
+  $('p-auteur').value = PARAMS.auteur||'';
+  $('hgrid').innerHTML = Object.entries(MOTIFS).map(([k,v])=>`<label class="f"><span>${v} (€)</span><input type="number" min="0" step="0.01" inputmode="decimal" data-hk="${k}" value="${honoDefaut(k)}"></label>`).join('');
+}
+function initParams(){
+  renderParams();
+  $('sw').addEventListener('click',e=>{ const b=e.target.closest('button[data-col]'); if(!b) return; PARAMS.couleur=b.dataset.col; saveParams(); applyTheme(); renderParams(); });
+  $('p-auteur').addEventListener('input',e=>{ const prev=PARAMS.auteur||''; PARAMS.auteur=e.target.value; saveParams(); if(!S.auteur || S.auteur===prev){ S.auteur=PARAMS.auteur; $('auteur').value=S.auteur; } });
+  $('hgrid').addEventListener('input',e=>{ const k=e.target.dataset.hk; if(!k) return; PARAMS.hono[k]=e.target.value; saveParams();
+    if(S.honoAuto && S.motif===k){ S.honoraires=e.target.value; $('honoraires').value=S.honoraires; render(); } });
+}
 function initPdf(){
   renderPdfPanel();
   $('b-pdf').addEventListener('click',()=>{ const p=$('pdf-panel'); p.hidden=!p.hidden; $('b-pdf').setAttribute('aria-expanded',String(!p.hidden)); if(!p.hidden) renderPdfPanel(); });
@@ -2409,9 +2692,12 @@ function initPdf(){
   $('pdf-blocs').addEventListener('change',e=>{ const id=e.target.dataset.pb; if(!id) return; PDFS.sel = PDF_BLOCS.map(b=>b.id).filter(x=>x===id ? e.target.checked : PDFS.sel.includes(x)); savePdfS(); });
   $('pdf-client').addEventListener('click',()=>{ PDFS.sel=PDF_PRESETS.client.slice(); savePdfS(); renderPdfPanel(); });
   $('pdf-full').addEventListener('click',()=>{ PDFS.sel=PDF_PRESETS.complet.slice(); savePdfS(); renderPdfPanel(); });
+  $('pdf-style').addEventListener('change',e=>{ PDFS.style=e.target.value; savePdfS(); });
   $('pdf-entete').addEventListener('input',e=>{ PDFS.entete=e.target.value; savePdfS(); });
   $('pdf-note').addEventListener('input',e=>{ PDFS.note=e.target.value; savePdfS(); });
   $('pdf-go').addEventListener('click',exportPdf);
+  $('img-go').addEventListener('click',exportImage);
+  $('img-copy').addEventListener('click',copyImage);
 }
 
 function legalLines(){
@@ -2517,12 +2803,14 @@ function bind(){
     el.addEventListener('input',()=>{
       S[k]=el.value;
       if(k==='ccn'){ syncCcnFields(); renderAbs(); }
-      if(k==='motif'){ syncCcnFields(); }
+      if(k==='motif'){ syncCcnFields(); applyHonoAuto(); }
+      if(k==='honoraires'){ S.honoAuto=false; }
       if(k==='dateRef'||k==='sortie') { if(k==='sortie'&&!S.dateRef){} renderMonths(); }
       render();
     });
   });
   $('eco').addEventListener('change',()=>{ S.eco=$('eco').checked; render(); });
+  $('droitRetraite').addEventListener('change',()=>{ S.droitRetraite=$('droitRetraite').checked; render(); });
   $('abs-add').addEventListener('click',()=>{ S.absences.push({type:'maladie',jours:30}); renderAbs(); render(); });
   $('abs-list').addEventListener('input',e=>{
     const t=e.target, i=+t.dataset.i; if(isNaN(i)) return;
@@ -2559,7 +2847,7 @@ function bind(){
     ioMsg(saveF(f) ? 'Fiche enregistrée dans ce navigateur.' : 'Enregistrement impossible ici : utilisez l\'export.'); renderSaved();
   });
   $('b-del').addEventListener('click',()=>{ if(!S.id) return; const f=loadF(); delete f[S.id]; saveF(f); S=DEFAULT(); push(); render(); renderSaved(); ioMsg('Fiche supprimée.'); });
-  $('saved').addEventListener('change',e=>{ const id=e.target.value; if(!id) return; const f=loadF(); if(f[id]){ S=Object.assign(DEFAULT(),JSON.parse(JSON.stringify(f[id]))); push(); render(); ioMsg('Fiche ouverte.'); } });
+  $('saved').addEventListener('change',e=>{ const id=e.target.value; if(!id) return; const f=loadF(); if(f[id]){ S=Object.assign(DEFAULT(),{honoAuto:false,auteur:''},JSON.parse(JSON.stringify(f[id]))); push(); render(); ioMsg('Fiche ouverte.'); } });
 
   $('silae-file').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) importSilae(f); e.target.value=''; });
   $('silae-panel').addEventListener('change',e=>{
@@ -2577,7 +2865,7 @@ function bind(){
   $('b-import').addEventListener('change',e=>{
     const file=e.target.files[0]; if(!file) return;
     const rd=new FileReader();
-    rd.onload=()=>{ try{ const o=JSON.parse(rd.result); if(!o||typeof o!=='object'||!('entree' in o)) throw 0; S=Object.assign(DEFAULT(),o,{id:null}); push(); render(); renderSaved(); ioMsg('Fiche importée.'); }catch(err){ ioMsg('Fichier non reconnu.'); } };
+    rd.onload=()=>{ try{ const o=JSON.parse(rd.result); if(!o||typeof o!=='object'||!('entree' in o)) throw 0; S=Object.assign(DEFAULT(),{honoAuto:false,auteur:''},o,{id:null}); push(); render(); renderSaved(); ioMsg('Fiche importée.'); }catch(err){ ioMsg('Fichier non reconnu.'); } };
     rd.readAsText(file); e.target.value='';
   });
 }
@@ -2588,18 +2876,18 @@ function testsOpt(on, ko){
 }
 function loadTestsPref(){ try{ return localStorage.getItem('ind-tests')==='1'; }catch(e){ return false; } }
 function show(v){
-  ['fiche','regles','tests'].forEach(k=>{ $('v-'+k).hidden = k!==v; });
+  ['fiche','regles','params','tests'].forEach(k=>{ $('v-'+k).hidden = k!==v; });
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
   try{ history.replaceState(null,'','#'+v); }catch(e){}
 }
 
 let TEST_KO=0;
-{ const d = 'Version V2.8 du 21/11/2026 — recoupement avec le simulateur officiel du '+CROISEMENT.date+' ('+CROISEMENT.version+') — '+TESTS.length+' cas de test';
+{ const d = 'Version V3.1 du 21/11/2026 — recoupement avec le simulateur officiel du '+CROISEMENT.date+' ('+CROISEMENT.version+') — '+TESTS.length+' cas de test';
   $('ver').title=d; $('foot-ver').textContent=d; }
 $('opt-tests').checked = loadTestsPref();
 $('opt-tests').addEventListener('change',()=>{ try{ localStorage.setItem('ind-tests',$('opt-tests').checked?'1':'0'); }catch(e){} testsOpt($('opt-tests').checked, TEST_KO); });
-initForm(); bind(); render(); renderRules(); renderSaved(); runTests();
-const h=(location.hash||'').replace('#',''); if(h==='regles') show(h); else if(h==='tests'){ $('opt-tests').checked=true; testsOpt(true,TEST_KO); show('tests'); }
+initForm(); initParams(); bind(); render(); renderRules(); renderSaved(); runTests();
+const h=(location.hash||'').replace('#',''); if(h==='regles'||h==='params') show(h); else if(h==='tests'){ $('opt-tests').checked=true; testsOpt(true,TEST_KO); show('tests'); }
 </script>
 </body>
 </html>
