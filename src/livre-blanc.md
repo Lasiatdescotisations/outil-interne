@@ -13,7 +13,7 @@ Quatre idées guident l'ensemble :
 3. **L'humain décide.** L'outil prépare, compare et alerte ; une convention n'est « validée » que lorsqu'une personne l'a cochée.
 4. **L'outil explique.** Il s'adresse aussi bien à qui découvre le sujet qu'à qui connaît déjà les textes : chaque résultat dit d'où il vient, chaque notion est définie, et le détail technique reste à portée de clic sans encombrer l'essentiel. Cette philosophie vaut pour l'ensemble de l'outil, pas seulement pour ce livre blanc.
 
-À ce jour : 71 conventions collectives, tous les motifs de rupture courants, un calendrier de procédure pour chaque motif, le régime social et fiscal, le contrat de sécurisation professionnelle (CSP), des exports PDF et image, et 140 tests automatiques.
+À ce jour : 69 conventions collectives, tous les motifs de rupture courants, un calendrier de procédure pour chaque motif, le régime social et fiscal, le contrat de sécurisation professionnelle (CSP), des exports PDF et image, et 154 tests automatiques.
 
 ## 2. Les notions de base
 
@@ -103,13 +103,13 @@ Une fois l'indemnité calculée, la question suivante est : que doit-on payer de
 
 ## 8. Les conventions collectives
 
-La couverture progresse par vagues. Elle suit le nombre d'établissements : les 70 conventions les plus répandues (rangs établis sur les déclarations sociales de juillet 2026), plus le caoutchouc.
+La couverture progresse par vagues. Elle suit le nombre d'établissements : les 70 conventions les plus répandues (rangs établis sur les déclarations sociales de juillet 2026), plus le caoutchouc. Les deux accords du travail temporaire (intérimaires et permanents) sont retirés pour l'instant : leur texte n'a pas pu être relu sur Légifrance.
 
 | Niveau | Nombre | Signification |
 | --- | --- | --- |
-| Barème modélisé | 20 | Texte relu, barème complet, recoupé quand c'est possible. |
-| Partiel | 35 | Un motif ou une catégorie modélisés, le reste au minimum légal. |
-| Légal appliqué | 16 | Barème non relevé : seul le minimum légal est calculé, avec une alerte. |
+| Barème modélisé | 29 | Texte relu, barème complet, recoupé quand c'est possible. |
+| Partiel | 36 | Un motif ou une catégorie modélisés, le reste au minimum légal. |
+| Légal appliqué | 4 | Barème non relevé, ou texte relu qui renvoie au minimum légal : seul le minimum légal est calculé, avec une note. |
 
 Pour chaque convention et chaque motif, un **indicateur** résume la situation : légal toujours plus favorable, conventionnel égal au légal, conventionnel toujours supérieur ou égal, ou cas par cas (selon l'ancienneté, l'âge, la catégorie ou le salaire). Il indique aussi à partir de quelle ancienneté le conventionnel l'emporte.
 
@@ -121,7 +121,7 @@ Cinq contrôles se complètent, du texte de la convention jusqu'à la décision 
 
 1. **Sources hiérarchisées.** Chaque règle renvoie à un article de Légifrance quand il existe. Les synthèses secondaires sont signalées et classées par niveau de fiabilité.
 2. **Recoupement avec le simulateur officiel** du Code du travail numérique, sur une grille de cas, quand il couvre la convention. Chaque écart est analysé : le texte de la convention l'emporte, et un écart assumé est documenté.
-3. **Tests automatiques.** 140 cas calculés à la main : 104 montants, 17 calendriers, 4 âge, 8 régime social et fiscal, 7 CSP.
+3. **Tests automatiques.** 154 cas calculés à la main : 118 montants, 17 calendriers, 4 âge, 8 régime social et fiscal, 7 CSP.
 4. **Veille des textes.** Un script compare les articles suivis à une photographie de référence de la base ouverte des conventions (KALI) et signale tout article modifié ou disparu, avec un brouillon de fiche à relire. Il ne modifie jamais le moteur.
 5. **Validation humaine.** Une case « validée par moi » par convention ; tant qu'elle n'est pas cochée, la fiche reste marquée provisoire.
 
@@ -136,7 +136,7 @@ Cinq contrôles se complètent, du texte de la convention jusqu'à la décision 
 
 L'outil est une aide au calcul, pas une consultation juridique. Ses limites sont affichées plutôt que cachées.
 
-- La couverture des conventions est inégale : 16 sur 71 sont au minimum légal, et la retraite conventionnelle reste à relever pour beaucoup.
+- La couverture des conventions est inégale : 4 sur 69 sont au minimum légal, et la retraite conventionnelle reste à relever pour beaucoup.
 - Le classement par nombre d'établissements est indicatif ; les rangs 26 à 60 de la source sont déduits de tableaux sectoriels.
 - Certains textes n'existent ni dans la base ouverte ni dans le simulateur officiel : il faut les relever sur Légifrance.
 - Les calendriers donnent des dates au plus tôt ; les délais conventionnels plus longs, les salariés protégés, le PSE et le congé de reclassement ne sont pas traités.
@@ -146,7 +146,7 @@ L'outil est une aide au calcul, pas une consultation juridique. Ses limites sont
 
 L'ordre suit les besoins, sans date fixée.
 
-1. Relire sur Légifrance les textes manquants (le travail est engagé par vagues sur Légifrance : rangs 21 à 32 et 36 à 50 faits ; restent les rangs 52 à 70).
+1. Relire sur Légifrance les textes manquants (le travail est engagé par vagues sur Légifrance : rangs 21 à 32 et 36 à 70 faits ; reste la relecture des conventions partielles).
 2. Compléter la retraite conventionnelle (départ et mise à la retraite).
 3. Valider le régime social et fiscal sur les textes de référence (BOSS) et l'ajouter à l'export Excel.
 4. Figer la veille : reconstruire la référence des textes après validation humaine, puis contrôler périodiquement.
@@ -158,7 +158,7 @@ Chaque nouvelle convention suit le même cycle : lecture du texte, modélisation
 
 **L'auteur** est gestionnaire de paie senior : dix ans de métier, dont huit en cabinet. L'outil est né de questions rencontrées sur le terrain (quelle ancienneté retenir, quelle convention appliquer, quel montant justifier) et de fiches de calcul réellement utilisées. Il garde ce regard de praticien : il vise ce qui sert au quotidien, sans prétendre remplacer l'avis d'un juriste.
 
-**La conception technique** : l'application est codée avec l'assistance de Claude Sonnet (modèle d'Anthropic), actuellement Claude Sonnet 5.5. Si un autre modèle intervient lors de développements futurs, il sera indiqué ici et dans l'historique des mises à jour. L'auteur oriente, relit et tranche ; les calculs sont vérifiés par des tests automatiques et, quand c'est possible, par recoupement avec le simulateur officiel.
+**La conception technique** : l'application est codée avec l'assistance de modèles Claude d'Anthropic : Claude Sonnet 5.5 jusqu'à la version 3.28, puis Claude Opus 5.5 à partir de la version 3.29. Chaque changement de modèle est indiqué ici et dans l'historique des mises à jour. L'auteur oriente, relit et tranche ; les calculs sont vérifiés par des tests automatiques et, quand c'est possible, par recoupement avec le simulateur officiel.
 
 **Une démarche éducative.** L'outil est pensé pour un public large, du débutant au confirmé. Cette ambition guide l'ensemble des écrans : vocabulaire expliqué, calcul décomposé, sources citées et limites affichées.
 

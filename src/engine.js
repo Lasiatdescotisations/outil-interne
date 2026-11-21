@@ -776,7 +776,7 @@ Object.assign(CCN, {
       return { mois:mo, expr:String(mo), lignes:l, baseKey:'sr3' };
     } },
 });
-[['3032','Esthétique, parfumerie'],['1431','Optique-lunetterie de détail'],['2378','Intérimaires des entreprises de travail temporaire'],['1413','Permanents des entreprises de travail temporaire'],['3237','Commerce de détail alimentaire spécialisé'],['2332','Entreprises d\'architecture'],['3090','Spectacle vivant privé'],['2335','Agences générales d\'assurances'],['1880','Négoce de l\'ameublement'],['3212','Travaux publics — cadres'],['1285','Entreprises artistiques et culturelles'],['3216','Négoce des matériaux de construction'],['1539','Bureau et numérique, commerces et services']].forEach(([id,nom])=>{
+[['3032','Esthétique, parfumerie'],['1431','Optique-lunetterie de détail'],['3237','Commerce de détail alimentaire spécialisé'],['2332','Entreprises d\'architecture'],['3090','Spectacle vivant privé'],['2335','Agences générales d\'assurances'],['1880','Négoce de l\'ameublement'],['3212','Travaux publics — cadres'],['1285','Entreprises artistiques et culturelles'],['3216','Négoce des matériaux de construction'],['1539','Bureau et numérique, commerces et services']].forEach(([id,nom])=>{
   CCN[id]={ ...base0, nom:nom+' (IDCC '+id+')', conv(){ return NONREL(nom); }, notes:['Texte absent de la base KALI ouverte et du simulateur officiel : barème conventionnel à relever sur Légifrance. Seul le minimum légal est calculé.'] };
 });
 { const c1090=CCN['1090'].conv;
@@ -918,8 +918,6 @@ Object.assign(CCN, {
 /* ===== Vague 36-50 relue sur Légifrance (V3.28) ===== */
 const licUnCinq = y => 0.2*y+(2/15)*Math.max(0,y-10);          // 1/5 par année, 2/15 en plus au-delà de 10 ans
 Object.assign(CCN, {
-  '2378': { ...CCN['2378'], notes:['Aucun texte de convention n\'est publié sous cet IDCC dans Légifrance (0 résultat) : seul le minimum légal est calculé. Pour un intérimaire, l\'indemnité de fin de mission (10 %) relève d\'un autre calcul, non traité ici.'] },
-  '1413': { ...CCN['1413'], notes:['Aucun texte de convention n\'est publié sous cet IDCC dans Légifrance (0 résultat) : seul le minimum légal est calculé.'] },
   '2332': { ...base0, nom:'Entreprises d\'architecture (IDCC 2332)',
     notes:['Art. IV.3 (relu sur Légifrance) : 8 mois d\'ancienneté ; 1/4 de mois par année jusqu\'à 10 ans, puis 1/3 ; années incomplètes proratisées : identique au barème légal. Licenciement économique : renvoi aux dispositions du code.','Aucune indemnité de départ ou de mise à la retraite propre à la convention (hors retraite complémentaire) : barème légal.'],
     conv(motif, c){ return renvoiLegal(motif,c,'Architecture (art. IV.3 = légal)'); } },
@@ -1031,9 +1029,135 @@ Object.assign(CCN, {
     } },
 });
 
+/* ===== Rangs 58-70 relus sur Légifrance (V3.29) ===== */
+Object.assign(CCN, {
+  '0804': { ...CCN['0804'], notes:['Accord national interprofessionnel des VRP du 3 octobre 1975 : non publié dans la liste des conventions de branche de Légifrance (recherche par numéro sans résultat). Seul le minimum légal est calculé.','L\'indemnité de clientèle (L7313-13) et l\'indemnité spéciale de rupture propre aux VRP ne sont pas modélisées.'] },
+  '2205': { ...base0, nom:'Notariat (IDCC 2205)',
+    notes:['Licenciement (art. 12.4, version actualisée du 16/12/2021 relue sur Légifrance, non étendue) : 8 mois de présence ininterrompue ; indemnité conforme aux dispositions légales.','Départ volontaire (art. 13.1) : 0,5 mois après 10 ans, 1 mois après 15, 2 mois après 20, 3 mois après 30 (« après » = ancienneté strictement supérieure). Mise à la retraite (art. 13.2) : régime légal.',SAL_FAV],
+    conv(motif, c){
+      if(motif==='departRet'){ const mo=palierMois(c.mois,[[10,0.5],[15,1],[20,2],[30,3]],true); if(mo>0) return { mois:mo, expr:String(mo), lignes:[palierTxt('Notariat départ retraite (art. 13.1)',c.mois/12,mo)] }; return renvoiLegal(motif,c,'Notariat (10 ans ou moins)'); }
+      return renvoiLegal(motif,c,'Notariat (art. 12.4 et 13.2 = légal)');
+    } },
+  '0478': { ...base0, nom:'Sociétés financières (IDCC 0478)', categories:[['tech','Techniciens'],['cadre','Cadres']],
+    notes:['Techniciens (art. 40, relu sur Légifrance) : plus d\'un an d\'ancienneté ; de 1 à 5 ans, 1/5 de mois par année ; au-delà de 5 ans, 2/5 de mois pour chaque année de présence, plafond 8 mois.','Cadres (livre II, art. 4) : plus d\'un an ; 1/2 mois par année, 3/4 de mois par année pour la tranche au-delà de 10 ans, plafond 18 mois.','Assiette : moyenne des appointements effectifs des 12 derniers mois. Années incomplètes : prorata retenu ici (le texte parle d\'« années de présence »).','Non modélisé : garantie de ressources de 6 mois pour les plus de 55 ans licenciés pour motif économique (art. 41). Retraite : aucune indemnité conventionnelle (art. 42 et livre II art. 5) : barème légal.'],
+    conv(motif, c){
+      if(motif==='departRet'||motif==='miseRet') return renvoiLegal(motif,c,'Sociétés financières (pas d\'indemnité de retraite conventionnelle)');
+      if(c.mois<=12) return zero('Sociétés financières',1);
+      const y=c.mois/12;
+      if((c.categorie||'tech')==='cadre'){ let mo=0.5*y+0.25*Math.max(0,y-10); const l=[`Sociétés financières cadres (livre II, art. 4) : 1/2 mois par année, 3/4 au-delà de 10 ans = ${fmtMois(mo)} mois`]; if(mo>18){ mo=18; l.push('Plafond de 18 mois appliqué.'); } return { mois:mo, expr:String(mo), baseKey:'sr12', lignes:l, doubleSiInaptP:true }; }
+      let mo= y<=5 ? 0.2*y : 0.4*y; const l=[`Sociétés financières techniciens (art. 40) : ${y<=5?'1/5':'2/5'} de mois par année = ${fmtMois(mo)} mois`]; if(mo>8){ mo=8; l.push('Plafond de 8 mois appliqué.'); }
+      return { mois:mo, expr:String(mo), baseKey:'sr12', lignes:l, doubleSiInaptP:true };
+    } },
+  '7025': { ...base0, nom:'Travaux agricoles, ruraux et forestiers — ETARF (IDCC 7025)', categories:[['nc','Non-cadres'],['etam','ETAM et cadres']],
+    notes:['Licenciement (art. 57, relu sur Légifrance) : 8 mois ; 1/4 de mois par année jusqu\'à 10 ans, 1/3 à partir de la 11e : identique au légal.','Départ volontaire (art. 58 a) : non-cadres 1 mois après 10 ans, 1,5 après 15, 2,5 après 20 et après 30 ans (le texte donne 2,5 aux deux seuils) ; ETAM et cadres 1,5 après 10 ans, 2 après 15, 2,5 après 20 (« 2,5 mois et demi » dans le texte : 2,5 retenu), 3 après 25.','Mise à la retraite (art. 58 b) : indemnité légale de licenciement.',SAL_FAV],
+    conv(motif, c){
+      if(motif==='departRet'){ const L=(c.categorie||'nc')==='etam'?[[10,1.5],[15,2],[20,2.5],[25,3]]:[[10,1],[15,1.5],[20,2.5],[30,2.5]]; const mo=palierMois(c.mois,L,true); if(mo>0) return { mois:mo, expr:String(mo), lignes:[palierTxt('ETARF départ retraite (art. 58 a)',c.mois/12,mo)] }; return renvoiLegal(motif,c,'ETARF (10 ans ou moins)'); }
+      return renvoiLegal(motif,c,'ETARF (art. 57 et 58 b = légal)');
+    } },
+  '2219': { ...base0, nom:'Taxis (IDCC 2219)',
+    notes:['Relue sur Légifrance : l\'art. 21 ne prévoit pas d\'indemnité de licenciement propre (légal) ; l\'art. 32 fixe une indemnité de départ (0,5 / 1 / 1,5 / 2 mois après 10 / 15 / 20 / 30 ans) identique au barème légal ; mise à la retraite : indemnité légale de licenciement.'],
+    conv(motif, c){ return renvoiLegal(motif,c,'Taxis (art. 21 et 32 = légal)'); } },
+  '2247': { ...base0, nom:'Courtage d\'assurances et de réassurances (IDCC 2247)',
+    notes:['Licenciement (art. 37, relu sur Légifrance) : 8 mois ; par tranches additionnelles : 0,5 mois de 8 à 18 mois, + 1 mois de 18 mois à 3 ans (sommes forfaitaires versées en entier, précision de la version non étendue), puis 25 % de mois par année de 3 à 10 ans, 50 % de 10 à 20 ans, 75 % au-delà ; plafond 15 mois ; jamais moins que le légal.','Départ volontaire (art. 39, 1°) : taux appliqué à toutes les années selon l\'ancienneté totale : 20 % de mois par année jusqu\'à 20 ans, 25 % de 20 à 30 ans, 30 % au-delà ; plafond 12 mois ; au moins le légal. Mise à la retraite (art. 39, 2°) : barème légal, plafonné à 12 mois dans le texte (le minimum légal reste dû).','Assiette : fixe + variable, hors éléments collectifs ou exceptionnels, plus favorable de 1/12 des 12 mois et 1/3 des 3 mois.'],
+    conv(motif, c){
+      const y=c.mois/12;
+      if(motif==='departRet'){ const r= y<=20?0.2:y<=30?0.25:0.3; let mo=r*y; const l=[`Courtage départ retraite (art. 39) : ${r*100} % de mois × ${fmtMois(y)} an(s) = ${fmtMois(mo)} mois`]; if(mo>12){ mo=12; l.push('Plafond de 12 mois appliqué.'); } return { mois:mo, expr:String(mo), lignes:l }; }
+      if(motif==='miseRet') return renvoiLegal(motif,c,'Courtage mise à la retraite (art. 39, 2° = légal)');
+      if(c.mois<8) return zero('Courtage (art. 37)',0.67);
+      let mo=0.5+(c.mois>18?1:0)+0.25*clamp(y,3,10)+0.5*clamp(y,10,20)+0.75*Math.max(0,y-20); const l=[`Courtage (art. 37) : tranches additionnelles 0,5 + ${c.mois>18?'1 + ':''}25 % / 50 % / 75 % par année = ${fmtMois(mo)} mois`];
+      if(mo>15){ mo=15; l.push('Plafond de 15 mois appliqué.'); }
+      return { mois:mo, expr:String(mo), lignes:l, doubleSiInaptP:true };
+    } },
+  '1261': { ...base0, nom:'Acteurs du lien social et familial — ALISFA (IDCC 1261)', categories:[['nc','Non-cadres'],['cadre','Cadres']],
+    notes:['Non-cadres (art. 8 du chap. III, relu sur Légifrance) : 2 ans d\'ancienneté ininterrompue ; 1/2 mois par année (prorata de l\'année commencée), plafond 6 mois. Non applicable aux structures de l\'annexe VI.','Cadres (chap. XI, art. 5) : plus d\'un an ; 1/2 mois par année, plafond 9 mois, jamais moins que le légal.','Retraite (chap. X) : 1/60 de la rémunération annuelle par année de présence, au plus 15 années, soit 0,2 mois par année et 3 mois au plus ; au moins le légal. Calcul « sur la valeur du point au départ » : assiette ordinaire retenue ici. Appliqué au départ et, par prudence, à la mise à la retraite (le légal reste dû).',SAL_FAV],
+    conv(motif, c){
+      const y=c.mois/12;
+      if(motif==='departRet'||motif==='miseRet'){ const mo=0.2*Math.min(y,15); return { mois:mo, expr:String(mo), lignes:[`ALISFA retraite (chap. X) : 1/60 de la rémunération annuelle par année, 15 ans au plus = ${fmtMois(mo)} mois`] }; }
+      const cad=(c.categorie||'nc')==='cadre';
+      if(cad ? c.mois<=12 : c.mois<24) return zero('ALISFA',cad?1:2);
+      let mo=0.5*y; const cap=cad?9:6; const l=[`ALISFA ${cad?'cadres (chap. XI, art. 5)':'(chap. III, art. 8)'} : 1/2 mois par année = ${fmtMois(mo)} mois`]; if(mo>cap){ mo=cap; l.push(`Plafond de ${cap} mois appliqué.`); }
+      return { mois:mo, expr:String(mo), lignes:l, doubleSiInaptP:true };
+    } },
+  '1790': { ...base0, nom:'Espaces de loisirs, d\'attractions et culturels (IDCC 1790)',
+    notes:['Licenciement (titre IX, art. 2, relu sur Légifrance) : à partir d\'un an révolu, 1/5 de mois par année (années révolues retenues), plus 1/15 par année au-delà de 15 ans : toujours inférieur au légal, qui s\'applique.','Retraite (art. 3) : 0,5 mois de 1 à 5 ans révolus, 1 de 5 à 10, 1,5 de 10 à 15, 2 de 15 à 20, 2,5 de 20 à 30, 3 au-delà (30 ans révolus : 3 mois retenus). Mise à la retraite : le plus favorable entre ce barème et l\'indemnité légale.','Assiette : 1/12 des 12 mois ou rémunération mensuelle la plus élevée des 3 derniers mois ; ici le plus élevé des moyennes 12 / 3 mois et du dernier salaire.'],
+    conv(motif, c){
+      if(motif==='departRet'||motif==='miseRet'){ const mo=palierMois(c.mois,[[1,0.5],[5,1],[10,1.5],[15,2],[20,2.5],[30,3]]); if(mo>0) return { mois:mo, expr:String(mo), baseKey:'srMax3', lignes:[palierTxt('Loisirs retraite (art. 3)',c.mois/12,mo)] }; return renvoiLegal(motif,c,'Loisirs (moins d\'un an)'); }
+      if(c.mois<12) return zero('Loisirs (art. 2)',1);
+      const yr=Math.floor(c.mois/12); const mo=0.2*yr+(1/15)*Math.max(0,yr-15);
+      return { mois:mo, expr:String(mo), baseKey:'srMax3', lignes:[`Loisirs (art. 2) : 1/5 de mois par année révolue (${yr})${yr>15?' + 1/15 au-delà de 15 ans':''} = ${fmtMois(mo)} mois`], doubleSiInaptP:true };
+    } },
+  '0759': { ...base0, nom:'Pompes funèbres (IDCC 0759)', categories:[['oatm','Ouvriers, administratifs, techniciens, maîtrise'],['cadre','Cadres et assimilés']],
+    notes:['Licenciement (art. 223.2, relu sur Légifrance), à partir de 2 ans : 10 % de mois par année depuis l\'embauche, plus 25 % par année de 4 à 12 ans, plus 35 % (40 % cadres) par année au-delà de 12 ans ; lecture cumulative de « en sus », à confirmer. Plafond 9 mois (12 cadres) ; jamais moins que le légal. Trimestre commencé compté comme complet.','Non lus : art. 223.1 (moins de 2 ans, légal appliqué) et 223.4 (plus de 50 ans).','Assiette conventionnelle : fixe moyen des 3 derniers mois + 1/12 des variables des 12 mois ; ici plus favorable des moyennes 12 / 3 mois.','Retraite (art. 224.2) : départ = moitié de l\'indemnité conventionnelle de licenciement, au moins 1/10 de mois par année + 1/15 au-delà de 10 ans ; mise à la retraite = moitié de l\'indemnité conventionnelle, au moins le légal.'],
+    conv(motif, c){
+      const cad=(c.categorie||'oatm')==='cadre'; const ye=Math.ceil(c.mois/3)/4;
+      const lic=()=>{ let mo=0.1*ye+0.25*clamp(ye,4,12)+(cad?0.4:0.35)*Math.max(0,ye-12); const cap=cad?12:9; return Math.min(mo,cap); };
+      if(motif==='departRet'||motif==='miseRet'){
+        const half= c.mois>=24 ? lic()/2 : 0; const y=c.mois/12;
+        if(motif==='miseRet') return { mois:half, expr:String(half), lignes:[`Pompes funèbres mise à la retraite (art. 224.2) : moitié de l'indemnité conventionnelle de licenciement = ${fmtMois(half)} mois (le légal reste dû s'il est supérieur)`] };
+        const plancher=0.1*y+(1/15)*Math.max(0,y-10); const mo=Math.max(half,plancher);
+        return { mois:mo, expr:String(mo), lignes:[`Pompes funèbres départ retraite (art. 224.2) : le plus élevé de la moitié de l'indemnité de licenciement (${fmtMois(half)}) et de 1/10 + 1/15 au-delà de 10 ans (${fmtMois(plancher)}) = ${fmtMois(mo)} mois`] };
+      }
+      if(c.mois<24) return renvoiLegal(motif,c,'Pompes funèbres (moins de 2 ans, art. 223.1 non relu)');
+      const brut=0.1*ye+0.25*clamp(ye,4,12)+(cad?0.4:0.35)*Math.max(0,ye-12); const mo=lic(); const l=[`Pompes funèbres (art. 223.2) : ${fmtMois(ye)} an(s) retenus (trimestre commencé compté) : 10 % + 25 % de 4 à 12 ans + ${cad?40:35} % au-delà = ${fmtMois(brut)} mois`]; if(mo<brut) l.push(`Plafond de ${cad?12:9} mois appliqué.`);
+      return { mois:mo, expr:String(mo), lignes:l, doubleSiInaptP:true };
+    } },
+});
+
+/* ===== Rangs 52-57 relus sur Légifrance (V3.30) ===== */
+const coefRevolu = m => { let k=0; while(m>12*(k+1)) k++; return k; };   // « ancienneté supérieure à k années révolues »
+Object.assign(CCN, {
+  '3254': { ...base0, nom:'Boucherie, boucherie-charcuterie-traiteur, poissonnerie (IDCC 3254)', categories:[['bouch','Secteur boucherie'],['poiss','Secteur poissonnerie']],
+    notes:['Convention du 24/09/2024, étendue le 29/09/2025 (relue sur Légifrance). Licenciement (art. 60) : 8 mois ; calcul du code du travail. Mise à la retraite (art. 61) : indemnité légale de licenciement.','Départ volontaire, secteur boucherie (art. 86) : 1 mois après 10 ans, 2 après 15, 2,5 après 20, 3 après 25, 3,5 après 30, 4 après 35, 4,5 après 40 ; ancienneté dans les entreprises du secteur (ici : ancienneté saisie).','Départ volontaire, secteur poissonnerie (art. 107) : 1 mois après 10 ans, 1,5 après 15, 2 après 20, 2,5 après 30. « Après » = ancienneté strictement supérieure.',SAL_FAV],
+    conv(motif, c){
+      if(motif==='departRet'){ const L=(c.categorie||'bouch')==='poiss'?[[10,1],[15,1.5],[20,2],[30,2.5]]:[[10,1],[15,2],[20,2.5],[25,3],[30,3.5],[35,4],[40,4.5]]; const mo=palierMois(c.mois,L,true); if(mo>0) return { mois:mo, expr:String(mo), lignes:[palierTxt('Boucherie-poissonnerie départ retraite (art. '+((c.categorie||'bouch')==='poiss'?'107':'86')+')',c.mois/12,mo)] }; return renvoiLegal(motif,c,'Boucherie-poissonnerie (10 ans ou moins)'); }
+      return renvoiLegal(motif,c,'Boucherie-poissonnerie (art. 60 et 61 = légal)');
+    } },
+  '1686': { ...base0, nom:'Commerces et services de l\'audiovisuel, de l\'électronique et de l\'équipement ménager (IDCC 1686)', categories:[['nc','Non-cadres'],['cadre','Cadres']],
+    notes:['Non-cadres (art. 36, relu sur Légifrance) : 1 an ; coefficient selon l\'ancienneté « supérieure à » N années révolues : 0,10 (1 an), 0,30 (2), puis + 0,10 par an jusqu\'à 1,20 (11), puis + 0,20 par an jusqu\'à 3,00 (20), + 0,20 par année au-delà ; majoration de 10 % au-delà de 50 ans. Ce barème reste inférieur au légal, qui s\'applique.','Cadres (avenant, art. 8) : 0,10 (1 an), 0,30 (2), puis + 0,20 par an jusqu\'à 1,70 (9), 2,00 (10), puis + 0,20 par an jusqu\'à 6,00 (30) et au-delà ; majoration de 15 % à 50 ans et plus.','Départ et mise à la retraite (art. 38 ; avenant cadres, art. 9) : mêmes tableaux de coefficients que le licenciement de la catégorie, sans majoration d\'âge ; assiette sur 12 mois pour les non-cadres.',SAL_FAV],
+    conv(motif, c){
+      const cad=(c.categorie||'nc')==='cadre'; const k=coefRevolu(c.mois);
+      const coef = k<1?0 : cad ? (k<10 ? 0.1+0.2*(k-1) : 2+0.2*(k-10)) : (k<=11 ? (k===1?0.1:0.3+0.1*(k-2)) : 1.2+0.2*(k-11));
+      const ret = motif==='departRet'||motif==='miseRet';
+      if(!ret && c.mois<12) return zero('Audiovisuel-électronique',1);
+      if(ret && coef===0) return renvoiLegal(motif,c,'Audiovisuel-électronique (moins d\'un an)');
+      let mo=coef; const l=[`Audiovisuel-électronique ${cad?'cadres':'non-cadres'} (${ret?(cad?'avenant art. 9':'art. 38'):(cad?'avenant art. 8':'art. 36')}) : ancienneté supérieure à ${k} an(s) révolu(s) → coefficient ${fmtMois(coef)}`];
+      if(!ret && c.age!==null && c.age!==undefined){ if(cad&&c.age>=50){ mo*=1.15; l.push('Majoration de 15 % (cadre de 50 ans et plus).'); } else if(!cad&&c.age>50){ mo*=1.1; l.push('Majoration de 10 % (plus de 50 ans).'); } }
+      const r={ mois:mo, expr:String(mo), lignes:l }; if(!ret) r.doubleSiInaptP=true; if(ret&&!cad) r.baseKey='sr12'; return r;
+    } },
+  '3253': { ...base0, nom:'Cabinets d\'avocats — salariés (IDCC 3253)', categories:[['na','Personnel non-avocat'],['av','Avocats salariés']],
+    notes:['Convention du 21/06/2024, étendue le 18/09/2025 (relue sur Légifrance). Licenciement (art. 26.4) : 8 mois ; au moins le barème légal, fractions d\'année comprises.','Personnel non-avocat (art. 26.4.2) : 0,5 mois de 8 mois à 2 ans inclus ; 1 mois jusqu\'à 4 ans ; 1,25 jusqu\'à 5 ; 2 jusqu\'à 8 ; 2,5 jusqu\'à 10 ; 3 jusqu\'à 11,5 ans ; au-delà, barème légal ; + 1 mois à 51 ans révolus à la notification.','Avocats salariés : licenciement au barème légal.','Fin de carrière, non-avocats (art. 27.3.1) : 1/4 de mois par année de 1 à 5 ans, puis 2, 3, 4, 5, 6, 7 mois par tranches de 5 ans (5, 10, 15, 20, 25, 30 ans), 8 mois à 35 ans ; même barème en mise à la retraite, sauf légal plus favorable.','Avocats salariés (art. 27.3.2) : départ 1/5 de mois par année jusqu\'à 20 ans, 26 % de 21 à 25, 34 % de 26 à 30, 42 % de 31 à 35, 48 % au-delà, + 0,5 mois à 65 ans avec 10 ans d\'ancienneté ; mise à la retraite au barème légal.',SAL_FAV],
+    conv(motif, c){
+      const av=(c.categorie||'na')==='av'; const y=c.mois/12; const age=(c.age!==null&&c.age!==undefined)?c.age:null;
+      if(motif==='departRet'||motif==='miseRet'){
+        if(av){ if(motif==='miseRet') return renvoiLegal(motif,c,'Avocats salariés mise à la retraite (art. 27.3.2 b = légal)');
+          let mo=0.2*Math.min(y,20)+0.26*clamp(y,20,25)+0.34*clamp(y,25,30)+0.42*clamp(y,30,35)+0.48*Math.max(0,y-35); const l=[`Avocats salariés départ retraite (art. 27.3.2) : 20 % puis 26 / 34 / 42 / 48 % par tranche = ${fmtMois(mo)} mois`];
+          if(age!==null&&age>=65&&y>=10){ mo+=0.5; l.push('65 ans et 10 ans d\'ancienneté : + 0,5 mois.'); }
+          return { mois:mo, expr:String(mo), lignes:l }; }
+        if(y<1) return renvoiLegal(motif,c,'Cabinets d\'avocats (moins d\'un an)');
+        const mo= y<5 ? 0.25*y : Math.min(8, 2+Math.floor((y-5)/5));
+        return { mois:mo, expr:String(mo), lignes:[`Cabinets d'avocats, fin de carrière non-avocat (art. 27.3.1) : ${fmtMois(y)} an(s) → ${fmtMois(mo)} mois`] };
+      }
+      if(av) return renvoiLegal(motif,c,'Avocats salariés (art. 26.4.1 = légal)');
+      if(c.mois<8) return zero('Cabinets d\'avocats (art. 26.4)',0.67);
+      let mo = y<=2?0.5 : y<=4?1 : y<=5?1.25 : y<=8?2 : y<=10?2.5 : y<=11.5?3 : legalMois(c.mois);
+      const l=[`Cabinets d'avocats, non-avocat (art. 26.4.2) : ${fmtMois(y)} an(s) → ${fmtMois(mo)} mois${y>11.5?' (barème légal au-delà de 11,5 ans)':''}`];
+      if(age!==null&&age>=51){ mo+=1; l.push('51 ans révolus à la notification : + 1 mois.'); }
+      return { mois:mo, expr:String(mo), lignes:l, doubleSiInaptP:true };
+    } },
+});
+{ const c1557=CCN['1557'].conv;
+  CCN['1557'].notes=['Licenciement (art. 80, relu sur Légifrance) : 1 an de présence continue ; 1/5 de mois par année + 2/15 par année au-delà de 10 ans.'].concat(CCN['1557'].notes.slice(1),['Départ en retraite (art. 81, relu sur Légifrance) : de 2 à 10 ans de présence, 1/20 du salaire moyen des 3 derniers mois par année ; à partir de 10 ans, 1/10 du salaire moyen des 12 derniers mois par année depuis la première, ou l\'indemnité légale si plus favorable. Mise à la retraite : indemnité légale de licenciement.']).filter(n=>!/retraite non relevée/i.test(n));
+  CCN['1557'].conv=(m,c)=>{
+    if(m==='miseRet') return renvoiLegal(m,c,'Articles de sport mise à la retraite (art. 81 = légal)');
+    if(m==='departRet'){ const y=c.mois/12; if(c.mois<24) return renvoiLegal(m,c,'Articles de sport (moins de 2 ans)');
+      if(y<10) { const mo=y/20; return { mois:mo, expr:String(mo), baseKey:'sr3', lignes:[`Articles de sport départ retraite (art. 81) : 1/20 du salaire moyen des 3 derniers mois par année = ${fmtMois(mo)} mois`] }; }
+      const mo=y/10; return { mois:mo, expr:String(mo), baseKey:'sr12', lignes:[`Articles de sport départ retraite (art. 81) : 1/10 du salaire moyen des 12 derniers mois par année = ${fmtMois(mo)} mois`] }; }
+    return c1557(m,c);
+  }; }
+
 /* Annuaire : rang indicatif (portefeuille type TPE-PME), nom court, secteur, statut de modélisation. */
 const CCN_META = {
- '3032':{rang:31,court:'Esthétique, parfumerie',statut:'partielle'}, '1431':{rang:32,court:'Optique-lunetterie',statut:'partielle'}, '0413':{rang:33,court:'CCN 66 (handicap)',statut:'partielle'}, '1516':{rang:34,court:'Organismes de formation',statut:'partielle'}, '1702':{rang:35,court:'Travaux publics ouvriers',statut:'partielle'}, '2378':{rang:36,court:'Intérimaires (travail temporaire)',statut:'legal'}, '0675':{rang:37,court:'Succursales habillement',statut:'partielle'}, '1404':{rang:38,court:'SDLM',statut:'partielle'}, '1413':{rang:39,court:'Permanents du travail temporaire',statut:'legal'}, '3237':{rang:40,court:'Commerce alimentaire spécialisé',statut:'modelisee'}, '2614':{rang:41,court:'Travaux publics ETAM',statut:'partielle'}, '2332':{rang:42,court:'Architecture',statut:'legal'}, '3090':{rang:43,court:'Spectacle vivant privé',statut:'modelisee'}, '2335':{rang:44,court:'Agences générales d\'assurances',statut:'modelisee'}, '1266':{rang:45,court:'Restauration de collectivités',statut:'partielle'}, '1880':{rang:46,court:'Négoce de l\'ameublement',statut:'partielle'}, '3212':{rang:47,court:'Travaux publics cadres',statut:'partielle'}, '1285':{rang:48,court:'Entreprises artistiques et culturelles',statut:'partielle'}, '3216':{rang:49,court:'Négoce matériaux de construction',statut:'partielle'}, '1539':{rang:50,court:'Bureau et numérique',statut:'modelisee'},
+ '3032':{rang:31,court:'Esthétique, parfumerie',statut:'partielle'}, '1431':{rang:32,court:'Optique-lunetterie',statut:'partielle'}, '0413':{rang:33,court:'CCN 66 (handicap)',statut:'partielle'}, '1516':{rang:34,court:'Organismes de formation',statut:'partielle'}, '1702':{rang:35,court:'Travaux publics ouvriers',statut:'partielle'}, '0675':{rang:37,court:'Succursales habillement',statut:'partielle'}, '1404':{rang:38,court:'SDLM',statut:'partielle'}, '3237':{rang:40,court:'Commerce alimentaire spécialisé',statut:'modelisee'}, '2614':{rang:41,court:'Travaux publics ETAM',statut:'partielle'}, '2332':{rang:42,court:'Architecture',statut:'legal'}, '3090':{rang:43,court:'Spectacle vivant privé',statut:'modelisee'}, '2335':{rang:44,court:'Agences générales d\'assurances',statut:'modelisee'}, '1266':{rang:45,court:'Restauration de collectivités',statut:'partielle'}, '1880':{rang:46,court:'Négoce de l\'ameublement',statut:'partielle'}, '3212':{rang:47,court:'Travaux publics cadres',statut:'partielle'}, '1285':{rang:48,court:'Entreprises artistiques et culturelles',statut:'partielle'}, '3216':{rang:49,court:'Négoce matériaux de construction',statut:'partielle'}, '1539':{rang:50,court:'Bureau et numérique',statut:'modelisee'},
  '1596':{rang:1,court:'Bâtiment ouvriers ≤ 10 sal.',statut:'partielle'}, '1486':{rang:2,court:'Syntec',statut:'modelisee'}, '1979':{rang:3,court:'HCR',statut:'partielle'},
  '7024':{rang:4,court:'Production agricole et CUMA',statut:'partielle'}, '1090':{rang:5,court:'Services de l\'automobile',statut:'modelisee'}, '2609':{rang:6,court:'Bâtiment ETAM',statut:'modelisee'},
  '2420':{rang:7,court:'Bâtiment cadres',statut:'modelisee'}, '1501':{rang:8,court:'Restauration rapide',statut:'partielle'}, '3248':{rang:9,court:'Métallurgie',statut:'partielle'},
@@ -1044,7 +1168,7 @@ const CCN_META = {
  '2216':{rang:22,court:'Grande distribution alimentaire',statut:'modelisee'}, '2098':{rang:23,court:'Prestataires tertiaire',statut:'partielle'}, '0787':{rang:24,court:'Experts-comptables',statut:'partielle'},
  '1996':{rang:25,court:'Pharmacie d\'officine',statut:'partielle'}, '1483':{rang:26,court:'Habillement et textiles',statut:'partielle'}, '7018':{rang:27,court:'Entreprises du paysage',statut:'modelisee'},
  '1518':{rang:28,court:'Animation',statut:'partielle'}, '3127':{rang:29,court:'Services à la personne',statut:'modelisee'}, '3043':{rang:30,court:'Propreté',statut:'legal'},
- '1978':{rang:51,court:'Fleuristes',statut:'partielle'}, '3254':{rang:52,court:'Boucherie, poissonnerie',statut:'legal'}, '1557':{rang:53,court:'Articles de sport',statut:'partielle'}, '0029':{rang:54,court:'CCN 51 (FEHAP)',statut:'partielle'}, '1686':{rang:55,court:'Audiovisuel, électronique',statut:'legal'}, '3253':{rang:56,court:'Cabinets d\'avocats (salariés)',statut:'legal'}, '2120':{rang:57,court:'Banque',statut:'partielle'}, '0804':{rang:58,court:'VRP',statut:'legal'}, '0086':{rang:59,court:'Publicité',statut:'modelisee'}, '1982':{rang:60,court:'Négoce médico-technique',statut:'partielle'}, '2205':{rang:61,court:'Notariat',statut:'legal'}, '0478':{rang:62,court:'Sociétés financières',statut:'legal'}, '7025':{rang:63,court:'Travaux agricoles et forestiers',statut:'legal'}, '2219':{rang:64,court:'Taxis',statut:'legal'}, '2247':{rang:65,court:'Courtage d\'assurances',statut:'legal'}, '2941':{rang:66,court:'Aide à domicile (BAD)',statut:'modelisee'}, '1351':{rang:67,court:'Prévention et sécurité',statut:'partielle'}, '1261':{rang:68,court:'ALISFA',statut:'legal'}, '1790':{rang:69,court:'Espaces de loisirs',statut:'legal'}, '0759':{rang:70,court:'Pompes funèbres',statut:'legal'},
+ '1978':{rang:51,court:'Fleuristes',statut:'partielle'}, '3254':{rang:52,court:'Boucherie, poissonnerie',statut:'modelisee'}, '1557':{rang:53,court:'Articles de sport',statut:'partielle'}, '0029':{rang:54,court:'CCN 51 (FEHAP)',statut:'partielle'}, '1686':{rang:55,court:'Audiovisuel, électronique',statut:'modelisee'}, '3253':{rang:56,court:'Cabinets d\'avocats (salariés)',statut:'modelisee'}, '2120':{rang:57,court:'Banque',statut:'partielle'}, '0804':{rang:58,court:'VRP',statut:'legal'}, '0086':{rang:59,court:'Publicité',statut:'modelisee'}, '1982':{rang:60,court:'Négoce médico-technique',statut:'partielle'}, '2205':{rang:61,court:'Notariat',statut:'modelisee'}, '0478':{rang:62,court:'Sociétés financières',statut:'modelisee'}, '7025':{rang:63,court:'Travaux agricoles et forestiers',statut:'modelisee'}, '2219':{rang:64,court:'Taxis',statut:'legal'}, '2247':{rang:65,court:'Courtage d\'assurances',statut:'modelisee'}, '2941':{rang:66,court:'Aide à domicile (BAD)',statut:'modelisee'}, '1351':{rang:67,court:'Prévention et sécurité',statut:'partielle'}, '1261':{rang:68,court:'ALISFA',statut:'modelisee'}, '1790':{rang:69,court:'Espaces de loisirs',statut:'modelisee'}, '0759':{rang:70,court:'Pompes funèbres',statut:'partielle'},
  '0045':{rang:null,court:'Caoutchouc',statut:'modelisee'}
 };
 const STATUT_LABEL = { modelisee:'Barème modélisé', partielle:'Modélisation partielle', legal:'Légal appliqué (barème non confirmé)' };
