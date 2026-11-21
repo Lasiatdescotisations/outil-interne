@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-<meta name="robots" content="noindex, nofollow">
+<head><meta name="robots" content="noindex, nofollow">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Calcul d'indemnités de rupture</title>
@@ -260,7 +259,7 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
     <button data-view="params">Paramètres</button>
     <button data-view="tests" id="nav-tests" hidden>Tests <span class="count" id="tcount">…</span></button>
   </nav>
-  <div class="top-right" id="ver" title="">V3.1 · 21/11/2026 · règles à valider</div>
+  <div class="top-right" id="ver" title="">V3.5 · 21/11/2026 · règles à valider</div>
 </header>
 
 <main class="wrap">
@@ -357,7 +356,7 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
      </div>
      <div id="silae-panel" hidden></div>
      <div class="bar" style="margin-top:10px">
-       <input type="number" id="fill-val" step="0.01" placeholder="Montant brut mensuel" style="max-width:190px" inputmode="decimal">
+       <input type="number" id="fill-val" step="0.01" placeholder="Montant brut mensuel" style="max-width:190px" inputmode="decimal" autocomplete="off" value="">
        <button class="btn sm" id="fill-btn" type="button">Remplir les 12 mois</button>
      </div>
      <div class="hint">« Reconstitué » : sommes à réintégrer (IJSS, maintien, absence non rémunérée…). Décochez « Moy. » pour écarter un mois (mois d'entrée partiel par exemple). Les primes annuelles ou exceptionnelles se proratisent dans la colonne Reconstitué.</div>
@@ -374,6 +373,17 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
        <label class="f"><span>Arrondi de l'indemnité retenue</span><select id="arrondi"><option value="">Automatique (RC : dizaine supérieure ; sinon euro supérieur)</option><option value="dizaine">Dizaine d'euros supérieure</option><option value="euro">Euro supérieur</option><option value="aucun">Aucun (centimes)</option></select></label>
        <label class="f"><span>Remarque sur la convention</span><input id="remCcn" placeholder="ex. CCN très inférieur au légal"></label>
      </div>
+     <div id="w-csp" hidden style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:4px 0 12px;background:var(--surface-2,var(--surface))">
+       <div class="row one"><label class="chk"><input type="checkbox" id="csp"><span><b>Le salarié accepte le contrat de sécurisation professionnelle (CSP)</b> : pas de préavis ; l'indemnité de préavis équivalente est versée à France Travail (3 mois maximum) si le salarié a au moins 1 an d'ancienneté.</span></label></div>
+       <div id="w-csp-f" hidden>
+         <div class="row three">
+           <label class="f"><span>Durée du préavis (mois)</span><input type="number" id="preavisMois" min="0" max="12" step="0.5" inputmode="decimal" placeholder="auto : minimum légal"><div class="hint">Préavis qui aurait été dû sans CSP (loi, convention, contrat).</div></label>
+           <label class="f"><span>Base mensuelle du préavis</span><select id="preavisBase"><option value="dernier">Dernier salaire mensuel (rémunération qui aurait été perçue)</option><option value="sr">Salaire de référence de l'indemnité (plus favorable moy. 12 / 3 mois)</option></select><input type="number" id="preavisSal" min="0" step="0.01" inputmode="decimal" placeholder="ou montant saisi (€)" style="margin-top:6px"></label>
+           <label class="f"><span>Charges à ajouter (patronales + salariales, %)</span><input type="number" id="cspTaux" min="0" max="200" step="0.1" inputmode="decimal" placeholder="ex. 60"></label>
+         </div>
+         <div class="row one"><label class="f"><span>Montant chargé calculé par la paie (€, facultatif)</span><input type="number" id="cspMontant" min="0" step="0.01" inputmode="decimal"><div class="hint">S'il est renseigné, il remplace l'estimation au taux de charges. Contribution à régler à France Travail, pas à l'Urssaf.</div></label></div>
+       </div>
+     </div>
      <div class="row">
        <label class="f"><span>Rémunération brute de l'année civile précédente (€)</span><input type="number" id="remN1" min="0" step="0.01" inputmode="decimal"><div class="hint">Année civile qui précède la rupture. Nécessaire au régime social et fiscal (seuil « 2 fois la rémunération »).</div></label>
        <div class="f" id="w-droit" hidden><span>Rupture conventionnelle</span><label class="chk"><input type="checkbox" id="droitRetraite"><span>Salarié en droit de bénéficier d'une pension de retraite (indemnité imposable en totalité)</span></label></div>
@@ -386,6 +396,11 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
 
   <aside class="sticky">
    <div class="card result" id="result"></div>
+   <div class="card" id="proc-card" hidden>
+     <h2 id="proc-h">Calendrier de la procédure</h2>
+     <div id="proc-in"></div>
+     <div id="proc-out"></div>
+   </div>
    <div class="card" id="cal-card" hidden>
      <h2>Calendrier de la rupture conventionnelle</h2>
      <div class="seg" id="cal-seg" role="group" aria-label="Date de départ du calendrier"></div>
@@ -415,6 +430,11 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
     <h2>Auteur des calculs</h2>
     <label class="f"><span>Nom ou initiales</span><input id="p-auteur" autocomplete="off" placeholder="ex. M. Dupont ou MD"></label>
     <div class="hint">Reporté automatiquement dans chaque nouvelle fiche (« Calcul établi par »), modifiable sur la fiche. Peut être affiché ou masqué à l'export.</div>
+  </div>
+  <div class="card">
+    <h2>Licenciement économique : CSP</h2>
+    <label class="f"><span>Taux de charges à ajouter au préavis (patronales + salariales, % du brut)</span><input type="number" id="p-csptaux" min="0" max="200" step="0.1" inputmode="decimal" placeholder="ex. 60"></label>
+    <div class="hint">Sert à estimer la contribution « chargée » à verser à France Travail. Le montant exact se récupère dans votre logiciel de paie (champ facultatif de la fiche).</div>
   </div>
   <div class="card">
     <h2>Honoraires par défaut</h2>
@@ -462,7 +482,7 @@ table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:t
 </section>
 
 <footer class="foot" style="max-width:1100px;margin:0 auto;padding:6px 16px 28px;color:var(--muted);font-size:12px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center">
-  <span id="foot-ver">Version V3.1 du 21/11/2026</span>
+  <span id="foot-ver">Version V3.5 du 21/11/2026</span>
 </footer>
 </main>
 
@@ -532,11 +552,40 @@ function arrondir(x, mode){
 }
 
 /* Salaire de référence depuis le tableau des 12 mois (Brut + Reconstitué). */
+/* ---------- Licenciement économique : contrat de sécurisation professionnelle (CSP) ----------
+   Salarié d'au moins 1 an d'ancienneté : l'employeur verse à France Travail l'indemnité de préavis que le salarié aurait perçue, dans la limite de 3 mois
+   (charges patronales et salariales comprises) ; l'éventuel excédent est versé au salarié. Moins d'un an : indemnité de préavis due au salarié, aucune contribution. */
+const preavisLegalMois = m => m>=24 ? 2 : m>=6 ? 1 : 0;   // L1234-1 : 1 mois de 6 mois à moins de 2 ans, 2 mois dès 2 ans
+function calculCsp(p){
+  const legal=preavisLegalMois(p.moisAnc), auto = p.preavisMois===null;
+  const M = auto ? legal : p.preavisMois;
+  const plus1an = p.moisAnc>=12;
+  const icp = r2(M*p.salaire);
+  const ft = plus1an ? r2(Math.min(M,3)*p.salaire) : 0;
+  const salarie = plus1an ? r2(Math.max(0,M-3)*p.salaire) : icp;
+  let ftCharge=null, mode=null;
+  if(ft>0){
+    if(p.montantCharge!==null){ ftCharge=r2(p.montantCharge); mode='paie'; }
+    else if(p.tauxCharges!==null){ ftCharge=r2(ft*(1+p.tauxCharges/100)); mode='taux'; }
+  }
+  const alertes=[], lignes=[];
+  lignes.push(`Préavis ${auto?'légal minimal':'retenu'} : ${fmtMois(M)} mois × ${fmtEur(p.salaire)} = ${fmtEur(icp)} d'indemnité de préavis équivalente (brut).`);
+  if(plus1an) lignes.push(`Ancienneté de ${fmtAnc(p.moisAnc)} (au moins 1 an) : contribution à France Travail = ${fmtMois(Math.min(M,3))} mois, soit ${fmtEur(ft)} brut${M>3?` ; excédent de ${fmtMois(M-3)} mois (${fmtEur(salarie)}) versé au salarié`:''}.`);
+  else lignes.push(`Ancienneté inférieure à 1 an : aucune contribution à France Travail ; l'indemnité de préavis (${fmtEur(icp)}) est versée au salarié.`);
+  if(auto) alertes.push(`CSP : durée de préavis non renseignée, minimum légal retenu (${fmtMois(legal)} mois). Si la convention, le contrat ou les usages prévoient plus (souvent 3 mois pour les cadres), renseignez la durée.`);
+  if(ft>0 && mode===null) alertes.push('CSP : contribution affichée en brut. France Travail appelle l\'indemnité de préavis charges patronales et salariales comprises : renseignez un taux de charges ou le montant chargé calculé par votre paie.');
+  if(mode==='taux') alertes.push(`CSP : contribution chargée estimée au taux de ${p.tauxCharges} % ; à remplacer par le montant chargé calculé par votre logiciel de paie.`);
+  alertes.push('CSP : le contrat est rompu le lendemain de l\'expiration du délai de réflexion de 21 jours, sans préavis : l\'ancienneté retenue s\'arrête à cette date (le préavis non exécuté n\'est pas compté). Date de fin de contrat à renseigner en conséquence.');
+  alertes.push('CSP : la contribution est versée à France Travail (et non à l\'Urssaf), au plus tard le 25 du 2e mois civil suivant le début du CSP. L\'indemnité de licenciement et l\'indemnité compensatrice de congés payés (congés non pris) restent dues au salarié, au solde de tout compte. Pas de majoration de 10 % de congés payés sur le préavis équivalent : il n\'ouvre pas droit à congés payés.');
+  return { moisAnc:p.moisAnc, plus1an, preavis:M, preavisLegal:legal, auto, salaire:p.salaire, icp, ft, ftCharge, mode, salarie, lignes, alertes };
+}
 function salaireDepuisMois(rows){
   const tot = rows.map(r => (+r.brut||0)+(+r.recon||0));
   const sel = tot.filter((_,i)=>rows[i].inclus!==false);
   const avg = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0;
-  return { sr12:avg(sel), sr3:avg(tot.slice(-3)), n:sel.length, total:tot.reduce((x,y)=>x+y,0) };
+  /* Dernier salaire mensuel : dernier mois renseigné et pris en compte (utile aux conventions qui visent « le dernier salaire mensuel ») */
+  let lastIdx=-1; for(let i=rows.length-1;i>=0;i--){ if(rows[i].inclus!==false && tot[i]>0){ lastIdx=i; break; } }
+  return { sr12:avg(sel), sr3:avg(tot.slice(-3)), srLast: lastIdx>=0?tot[lastIdx]:0, lastIdx, n:sel.length, total:tot.reduce((x,y)=>x+y,0) };
 }
 
 /* Âge en années révolues à une date donnée (anniversaire atteint le jour même ; né un 29 février : le 1er mars en année non bissextile). */
@@ -623,6 +672,74 @@ function calendrierRC(dateISO, cfg){
     retractationDebut:iso(p.retDeb), retractationBrute:iso(p.retBrute), retractationFin:iso(p.retFin),
     depot0:iso(p.dep0), envoi:iso(p.dep), reception:iso(p.rec), instructionDebut:iso(p.iDeb), instructionBrute:iso(p.iBrute), instructionFin:iso(p.iFin),
     feriesInstruction:p.feriesInstr, ruptureAuPlusTot:iso(p.rup) };
+}
+
+/* ---------- calendrier de la procédure (hors rupture conventionnelle) ----------
+   Délais : entretien ≥ 5 jours ouvrables après la présentation de la convocation (L1232-2) ; notification ≥ 2 jours ouvrables après l'entretien (L1232-6),
+   7 jours (15 pour un cadre) en licenciement économique individuel (L1233-15) ; préavis à compter de la 1re présentation de la lettre (L1234-3) ;
+   CSP : 21 jours de réflexion (L1233-67) ; inaptitude : reprise du salaire 1 mois après l'avis (L1226-4, L1226-11), rupture à la notification ;
+   mise à la retraite : interrogation écrite ≥ 3 mois avant l'anniversaire (L1237-5, D1237-2-1) ; départ volontaire : préavis L1237-10. */
+function ajoutMois(d,n){ const y=d.getUTCFullYear(), m=d.getUTCMonth()+n, day=d.getUTCDate(), last=new Date(Date.UTC(y,m+1,0)).getUTCDate();
+  return { date:new Date(Date.UTC(y,m,Math.min(day,last))), clamp:day>last }; }
+function finDelaiMois(d,n){ const w=Math.floor(n), f=n-w; let r=ajoutMois(d,w), x=r.clamp?r.date:addDays(r.date,-1); if(f>0) x=addDays(x,Math.round(f*30)); return x; }
+function apresOuvrables(d,n,J){ let c=0,x=d; while(c<n){ x=addDays(x,1); if(J.ouvrable(x)) c++; } return x; } // dernier jour du délai (non compris : jour de départ et jour d'échéance)
+function calendrierProcedure(motif, cfg){
+  cfg=cfg||{}; const J=jours(!!cfg.am), E=[], notes=[];
+  const d0=parseISO(cfg.d0); if(!d0) return null;
+  const push=(label,d,detail,key)=>{ E.push({ label, iso:toISO(d), detail:detail||'', key:!!key }); };
+  const suivantOuvrable=d=>{ let x=d; while(!J.ouvrable(x)) x=addDays(x,1); return x; };
+  const num=v=>(v===''||v==null||!isFinite(+v))?null:+v;
+  const moisAnc=cfg.moisAnc||0;
+  const pmLegal = motif==='departRet' ? (moisAnc>=24?2:1) : preavisLegalMois(moisAnc);
+  const pmSaisi=num(cfg.preavisMois), pm = pmSaisi==null ? pmLegal : pmSaisi;
+  const preavis=(debut,label)=>{ // bloc préavis à partir de la 1re présentation de la lettre
+    if(pm<=0){ push('Fin du contrat',debut,'Pas de préavis',true); return debut; }
+    const fin=finDelaiMois(debut,pm);
+    push('Préavis ('+fmtMois(pm)+' mois)',debut,'du '+frDate(debut)+' au '+frDate(fin)+' ; point de départ : 1re présentation de la lettre (L1234-3)');
+    push(label||'Fin du préavis et du contrat',fin,'La dispense de préavis ne change pas la date de fin du contrat',true); return fin; };
+  let fin=null;
+  if(motif==='departRet'||motif==='miseRet'){
+    if(motif==='miseRet' && cfg.anniv){ const a=parseISO(cfg.anniv);
+      if(a){ const lim=ajoutMois(a,-3).date; push('Interrogation écrite du salarié, au plus tard',lim,'3 mois avant l\'anniversaire du '+frDate(a)+' (L1237-5, D1237-2-1)');
+        push('Réponse du salarié, sous',addDays(ajoutMois(lim,1).date,0),'1 mois ; réponse négative ou absence d\'interrogation : pas de mise à la retraite dans l\'année'); } }
+    push(motif==='miseRet'?'Notification de la mise à la retraite':'Notification du départ à la retraite',d0,motif==='miseRet'?'Pas d\'entretien préalable obligatoire (sauf convention ou salarié protégé)':'Lettre recommandée ou remise en main propre');
+    fin=preavis(d0);
+    if(motif==='miseRet' && cfg.anniv){ const a=parseISO(cfg.anniv); if(a){ const rep=ajoutMois(ajoutMois(a,-3).date,1).date; if(d0<rep) notes.push('La notification précède la fin du délai de réponse du salarié ('+jourLong(rep)+') : à vérifier si le salarié a moins de 70 ans.'); } }
+    notes.push(motif==='miseRet'?'Mise à la retraite : à 70 ans l\'employeur n\'a pas à interroger le salarié ; avant, l\'accord du salarié est requis (L1237-5). Préavis : L1237-6 renvoie à L1234-1.':'Départ volontaire : préavis de 1 mois (moins de 2 ans d\'ancienneté) ou 2 mois (L1237-10), sauf convention plus favorable.');
+  } else {
+    const inapt = motif==='inaptNP'||motif==='inaptP', eco=!!cfg.eco && motif==='lic', cadre=!!cfg.cadre;
+    if(inapt && cfg.avis){ const a=parseISO(cfg.avis); if(a){ push('Avis d\'inaptitude du médecin du travail',a,'');
+      push('Reprise du salaire si ni reclassé ni licencié, à partir du',ajoutMois(a,1).date,'1 mois après l\'avis (L1226-4, L1226-11)'); } }
+    push('Convocation à l\'entretien préalable (1re présentation ou remise en main propre)',d0,'');
+    const entMin=suivantOuvrable(addDays(apresOuvrables(d0,5,J),1));
+    let ent=parseISO(cfg.ent)||entMin;
+    push('Entretien préalable',ent,parseISO(cfg.ent)?'date saisie':'au plus tôt : 5 jours ouvrables après la présentation (L1232-2)',false);
+    if(ent<entMin) notes.push('L\'entretien du '+jourLong(ent)+' est antérieur à la date minimale ('+jourLong(entMin)+') : délai de 5 jours ouvrables non respecté.');
+    const n = eco ? (cadre?15:7) : 2;
+    const notMin=suivantOuvrable(addDays(apresOuvrables(ent,n,J),1));
+    const nSaisie=parseISO(cfg.notif), notif=nSaisie||notMin;
+    push('Notification du licenciement (envoi de la lettre)',notif,(nSaisie?'date saisie ; ':'')+'au plus tôt : '+n+' jours ouvrables après l\'entretien ('+(eco?'L1233-15':'L1232-6')+')'+(!eco&&motif==='lic'?'. Licenciement disciplinaire : au plus tard 1 mois après l\'entretien, soit le '+frDate(ajoutMois(ent,1).date)+' (L1332-2)':''));
+    if(notif<notMin) notes.push('La notification du '+jourLong(notif)+' est antérieure à la date minimale ('+jourLong(notMin)+') : délai de '+n+' jours ouvrables non respecté.');
+    if(inapt){
+      fin=notif; push('Fin du contrat (inaptitude : pas de préavis exécuté)',notif,'Rupture à la date de notification (L1226-4) ; le salaire cesse à la 1re présentation de la lettre',true);
+      if(cfg.avis){ const a=parseISO(cfg.avis); if(a && notif>ajoutMois(a,1).date) notes.push('La notification intervient plus d\'un mois après l\'avis d\'inaptitude : le salaire doit être repris à partir du '+jourLong(ajoutMois(a,1).date)+' (L1226-4).'); }
+      notes.push(motif==='inaptNP'?'Inaptitude non professionnelle : préavis non exécuté et sans indemnité compensatrice ; il compte dans l\'ancienneté de l\'indemnité de licenciement.':'Inaptitude professionnelle : indemnité égale à l\'indemnité compensatrice de préavis (L1226-14) ; la date de rupture reste la notification.');
+    } else {
+      if(eco && cfg.csp){
+        const fCsp=addDays(ent,21);
+        push('Remise du document CSP, au plus tard à l\'entretien',ent,'Point de départ du délai de réflexion');
+        push('Fin du délai de réflexion CSP (21 jours)',fCsp,'Adhésion : rupture d\'un commun accord à cette date, sans préavis (L1233-67) ; la lettre de licenciement peut être envoyée à titre conservatoire pendant ce délai',true);
+        const f2=(pm>0)?finDelaiMois(notif,pm):notif;
+        push('Sans adhésion au CSP : fin du préavis et du contrat',f2,'Préavis de '+fmtMois(pm)+' mois à compter du '+frDate(notif),false);
+        fin=fCsp;
+      } else fin=preavis(notif);
+      if(eco){ push('Demande de précisions sur les motifs, jusqu\'au',addDays(notif,15),'15 jours après la notification (le salarié ; l\'employeur peut aussi préciser dans ce délai)');
+        push('Priorité de réembauche, jusqu\'au',ajoutMois(fin,12).date,'1 an à compter de la rupture (L1233-45)'); }
+    }
+    notes.push('Les jours fériés et dimanches sont écartés des délais en jours ouvrables ; les délais sont des minima.');
+  }
+  push('Remise du certificat de travail, de l\'attestation France Travail et du reçu pour solde de tout compte',fin,'À la fin du contrat');
+  return { motif, etapes:E, notes, fin:toISO(fin), preavisMois:pm, preavisLegal:pmLegal, options:{ am:!!cfg.am } };
 }
 
 /* ---------- règles par convention collective ----------
@@ -1022,7 +1139,11 @@ Object.assign(CCN, {
     conv(motif, c){
       if(motif==='departRet'){
         const y=Math.floor(c.mois/12); if(y<5) return zero('Experts-comptables départ retraite',5);
-        const mo=0.5+0.1*(y-5); return { mois:mo, expr:`0.5+0.1*${y-5}`, lignes:[`Experts-comptables départ retraite : ½ mois à 5 ans + 1/10 de mois par année complète au-delà (${y-5}) = ${fmtMois(mo)} mois`] };
+        const mo=0.5+0.1*(y-5);
+        const avert = c.srLast>0
+          ? `Experts-comptables, départ volontaire : base retenue = la plus favorable des trois entre la moyenne 12 mois (${fmtEur(c.sr12)}), la moyenne 3 mois (${fmtEur(c.sr3)}) et le dernier salaire mensuel (${fmtEur(c.srLast)}). L'article 6.2.4.1 ne vise que le dernier salaire mensuel (prime d'ancienneté incluse, congés payés exclus) : lecture plus favorable retenue, à valider.`
+          : `Experts-comptables, départ volontaire : le texte vise le dernier salaire mensuel ; faute de mois renseigné, la base retenue est la plus favorable des moyennes 12 et 3 mois (à valider).`;
+        return { mois:mo, expr:`0.5+0.1*${y-5}`, baseKey:'srMax3', avert, lignes:[`Experts-comptables départ retraite : ½ mois à 5 ans + 1/10 de mois par année complète au-delà (${y-5}) = ${fmtMois(mo)} mois`] };
       }
       return renvoiLegal(motif,c,'Experts-comptables');
     } },
@@ -1071,11 +1192,87 @@ Object.assign(CCN, {
   '3127': { ...base0, nom:'Services à la personne — entreprises (IDCC 3127)', conv(){ return NM('Barème non relevé.','Barème non relevé : seul le minimum légal est calculé.'); }, notes:['Aucun barème conventionnel confirmé à ce stade.'] },
   '3043': { ...base0, nom:'Propreté et services associés (IDCC 3043)', conv(){ return NM('Barème non relevé.','Barème non relevé : seul le minimum légal est calculé.'); }, notes:['Aucun barème conventionnel confirmé à ce stade.'] }
 });
+
+/* ---------- Rangs 31 à 50 (V3.5) : barèmes relus dans KALI (texte en vigueur) et recoupés avec le simulateur officiel quand il couvre la convention ---------- */
+const NONREL = (lab) => ({ mois:0, expr:'0', lignes:[lab+' : barème conventionnel non relevé (texte absent de la base KALI ouverte), seul le minimum légal est calculé.'], nonModelise:true, avert:'Texte conventionnel non relevé : vérifier sur Légifrance avant de retenir le minimum légal.' });
+Object.assign(CCN, {
+  '1702': { ...base0, nom:'Travaux publics — ouvriers (IDCC 1702)', ageMajoration:true,
+    notes:['Art. 10.3 : indemnité due à l\'ouvrier qui ne peut pas prétendre à une pension vieillesse à taux plein (à contrôler). Salaire : plus favorable des moyennes 3 et 12 mois (art. 10.5).','Majoration de 10 % au-delà de 55 ans (à l\'expiration du préavis) ; licenciement économique : complément de 35/100 de mois (5 ans et plus) ou +70 % (2 à 5 ans).'],
+    conv(motif, c){
+      if(motif==='departRet'||motif==='miseRet') return NM('TP ouvriers (retraite)','Retraite TP ouvriers : dispositions propres non relevées, minimum légal retenu.');
+      const y=c.mois/12; if(y<2) return zero('TP ouvriers',2);
+      let b = y<=5 ? 0.1*y : 0.15*y + 0.05*Math.max(0,y-15); const l=[`TP ouvriers (art. 10.3) : ${y<=5?'1/10 de mois par année (2 à 5 ans)':'3/20 de mois par année depuis l\'entrée'+(y>15?' + 1/20 au-delà de 15 ans':'')} = ${fmtMois(b)} mois`];
+      let mo=b; const maj=(c.age!==null&&c.age>55)?0.1*b:0; if(maj){ mo+=maj; l.push('Majoration de 10 % (plus de 55 ans) : +'+fmtMois(maj)+' mois.'); }
+      if(c.eco && motif==='lic'){ if(y>=5){ mo+=0.35; l.push('Licenciement économique : complément forfaitaire de 35/100 de mois (5 ans et plus) : +0,35 mois.'); } else { mo+=0.7*b; l.push('Licenciement économique (2 à 5 ans) : complément de 70 % de l\'indemnité : +'+fmtMois(0.7*b)+' mois.'); } }
+      return { mois:mo, expr:String(mo), lignes:l };
+    } },
+  '2614': { ...base0, nom:'Travaux publics — ETAM (IDCC 2614)', ageMajoration:true,
+    notes:['Art. 8.4 et 8.5 : barème identique à celui des ETAM du bâtiment. Assiette conventionnelle : dernier mois + 1/12 des éléments variables ; ici plus favorable des moyennes 12 / 3 mois.'],
+    conv(motif, c){
+      if(motif==='departRet') return NM('TP ETAM (départ à la retraite)','Départ à la retraite TP ETAM : dispositions propres non relevées, minimum légal retenu.');
+      if(motif==='miseRet') return NM('TP ETAM (mise à la retraite, art. 8.7)','Mise à la retraite TP ETAM (art. 8.7) non modélisée : minimum légal retenu.');
+      if(c.age!==null && c.age>=65) return NM('TP ETAM (65 ans et plus)','ETAM de 65 ans et plus : art. 8.7 non modélisé, minimum légal retenu.');
+      const y=c.mois/12; if(y<2) return zero('TP ETAM',2);
+      let mo=0.25*Math.min(y,15)+0.35*Math.max(0,y-15); const l=[`TP ETAM (art. 8.5) : 2,5/10 de mois par année jusqu'à 15 ans + 3,5/10 au-delà = ${fmtMois(mo)} mois`];
+      if(mo>10){ mo=10; l.push('Plafond de 10 mois appliqué.'); }
+      if(c.age!==null && c.age>55){ mo*=1.1; l.push('Majoration de 10 % (plus de 55 ans, ajoutée après plafond).'); }
+      return { mois:mo, expr:String(mo), lignes:l };
+    } },
+  '1266': { ...base0, nom:'Restauration de collectivités (IDCC 1266)', categories:[['nc','Non-cadres'],['cadre','Cadres']],
+    notes:['Art. 14 : salariés licenciés avant 65 ans, 1 an d\'ancienneté ; salaire : plus favorable de 1/12 des 12 derniers mois ou 1/3 des 3 derniers mois (primes annuelles au prorata).','Retraite (art. 35) : barème propre non modélisé.'],
+    conv(motif, c){
+      if(motif==='departRet'||motif==='miseRet') return NM('Restauration de collectivités (retraite, art. 35)','Retraite : indemnité de départ de l\'art. 35 non modélisée, minimum légal retenu.');
+      if(c.age!==null && c.age>=65) return NM('Restauration de collectivités (65 ans et plus)','Salarié de 65 ans et plus : pas d\'indemnité conventionnelle de licenciement (art. 14), minimum légal retenu.');
+      const y=c.mois/12; if(y<1) return zero('Restauration de collectivités',1);
+      let mo, l;
+      if(c.categorie==='cadre'){ mo=0.2*y+(1/15)*clamp(y,5,10)+(2/15)*clamp(y,10,15)+(3/15)*Math.max(0,y-15); l=[`Cadres (art. 14) : 1/5 de mois par année + 1/15 de 5 à 10 ans + 2/15 de 10 à 15 ans + 3/15 au-delà de 15 ans = ${fmtMois(mo)} mois (le plus favorable de ce barème et du légal s'applique)`]; }
+      else { mo=0.2*y+(2/15)*Math.max(0,y-10); l=[`Non-cadres (art. 14) : 1/5 de mois par année + 2/15 par année au-delà de 10 ans = ${fmtMois(mo)} mois`]; }
+      return { mois:mo, expr:String(mo), lignes:l };
+    } },
+  '1516': { ...base0, nom:'Organismes de formation (IDCC 1516)',
+    notes:['Art. 9.2 (avenant du 6 février 2023) : 8 mois d\'ancienneté ; 1/4 de mois par année jusqu\'à 10 ans, 1/3 au-delà (= barème légal). Salaire : plus favorable de 1/12 des 12 derniers mois ou du mois le plus élevé des 3 derniers (primes au prorata).','Retraite : dispositions propres non relevées.'],
+    conv(motif, c){
+      if(motif==='departRet'||motif==='miseRet') return NM('Organismes de formation (retraite)','Retraite : dispositions propres non relevées, minimum légal retenu.');
+      const y=c.mois/12; if(c.mois<8) return { mois:0, expr:'0', lignes:['Organismes de formation : moins de 8 mois d\'ancienneté.'] };
+      const mo=0.25*Math.min(y,10)+(1/3)*Math.max(0,y-10);
+      return { mois:mo, expr:String(mo), lignes:[`Organismes de formation (art. 9.2) : 1/4 de mois par année jusqu'à 10 ans + 1/3 au-delà = ${fmtMois(mo)} mois`], doubleSiInaptP:true };
+    } },
+  '1404': { ...base0, nom:'Maintenance, distribution et location de matériels — SDLM (IDCC 1404)',
+    notes:['Recoupement avec le simulateur officiel : conventionnel = légal pour le licenciement. Texte relu partiellement (la base KALI ne remonte pas l\'article par mot-clé) : à confirmer.'],
+    conv(motif, c){ return renvoiLegal(motif,c,'SDLM'); } },
+  '0675': { ...base0, nom:'Succursales de vente au détail d\'habillement (IDCC 0675)', categories:[['emp','Employés'],['am','Agents de maîtrise'],['cadre','Cadres']], ageMajoration:true,
+    notes:['Avenants maîtrise (art. 11) et cadres (art. 16) : barèmes relevés ; employés : pas de barème propre (légal).','Fin de carrière (art. 44) : moitié de l\'indemnité de licenciement, non modélisée.'],
+    conv(motif, c){
+      if(motif==='departRet'||motif==='miseRet') return NM('Succursales habillement (fin de carrière)','Allocation de fin de carrière (moitié de l\'indemnité de licenciement) non modélisée : minimum légal retenu.');
+      const y=c.mois/12;
+      if(c.categorie==='emp'||!c.categorie) return { mois:0, expr:'0', lignes:['Succursales habillement (employés) : pas de barème conventionnel propre, minimum légal appliqué.'] };
+      if(y<2) return zero('Succursales habillement',2);
+      let mo, cap, l;
+      if(c.categorie==='am'){ mo=0.1*Math.min(y,10)+0.4*Math.max(0,y-10); cap=9; l=[`Agents de maîtrise (art. 11) : 1/10 de mois par année jusqu'à 10 ans + 2/5 au-delà = ${fmtMois(mo)} mois (plafond de 6 mois prévu en cas de licenciements collectifs pour difficultés économiques : non appliqué)`]; }
+      else { mo=(y<=5?0.1*y:0.2*Math.min(y,15))+0.4*Math.max(0,y-15); cap=12; l=[`Cadres (art. 16) : 1/10 de mois par année (2 à 5 ans), puis 1/5 depuis l'entrée jusqu'à 15 ans${y>15?' + 2/5 au-delà de 15 ans':''} = ${fmtMois(mo)} mois`]; }
+      if(c.age!==null&&c.age>=50&&y>=20){ mo*=1.5; cap*=1.5; l.push('Majoration de 50 % (50 ans et plus, 20 ans de présence) de l\'indemnité et du plafond'+(c.categorie==='cadre'?' (constatée par le simulateur officiel)':'')+'.'); }
+      if(mo>cap){ mo=cap; l.push(`Plafond de ${fmtMois(cap)} mois appliqué.`); }
+      return { mois:mo, expr:String(mo), lignes:l };
+    } },
+  '0413': { ...base0, nom:'Établissements pour personnes inadaptées et handicapées — CCN 66 (IDCC 0413)', categories:[['nc','Non-cadres'],['cadre','Cadres']],
+    notes:['Art. 17 (non étendu) : 1/2 mois par année dès 2 ans, plafond 6 mois, salaire moyen des 3 derniers mois. Cadres (annexe 6) : dépend de la part d\'ancienneté acquise comme cadre, non modélisé.'],
+    conv(motif, c){
+      if(motif==='departRet'||motif==='miseRet') return NM('CCN 66 (retraite)','Retraite CCN 66 : dispositions propres non relevées, minimum légal retenu.');
+      if(c.categorie==='cadre') return NM('CCN 66 (cadres)','Cadres CCN 66 : barème (1/2 mois non-cadre + 1 mois cadre, plafond 12 mois) dépend de la répartition de l\'ancienneté : non modélisé.');
+      const y=c.mois/12; if(y<2) return zero('CCN 66',2);
+      let mo=0.5*y; const l=[`CCN 66 non-cadres (art. 17) : 1/2 mois par année = ${fmtMois(mo)} mois`]; if(mo>6){ mo=6; l.push('Plafond de 6 mois appliqué.'); }
+      return { mois:mo, expr:String(mo), lignes:l, baseKey:'sr3' };
+    } },
+});
+[['3032','Esthétique, parfumerie'],['1431','Optique-lunetterie de détail'],['2378','Intérimaires des entreprises de travail temporaire'],['1413','Permanents des entreprises de travail temporaire'],['3237','Commerce de détail alimentaire spécialisé'],['2332','Entreprises d\'architecture'],['3090','Spectacle vivant privé'],['2335','Agences générales d\'assurances'],['1880','Négoce de l\'ameublement'],['3212','Travaux publics — cadres'],['1285','Entreprises artistiques et culturelles'],['3216','Négoce des matériaux de construction'],['1539','Bureau et numérique, commerces et services']].forEach(([id,nom])=>{
+  CCN[id]={ ...base0, nom:nom+' (IDCC '+id+')', conv(){ return NONREL(nom); }, notes:['Texte absent de la base KALI ouverte et du simulateur officiel : barème conventionnel à relever sur Légifrance. Seul le minimum légal est calculé.'] };
+});
 { const c1090=CCN['1090'].conv;
   CCN['1090'].conv=(m,c)=> m==='departRet' ? renvoiLegal(m,c,'Automobile (vos fiches IFC : conventionnel = légal)') : c1090(m,c); }
 
 /* Annuaire : rang indicatif (portefeuille type TPE-PME), nom court, secteur, statut de modélisation. */
 const CCN_META = {
+ '3032':{rang:31,court:'Esthétique, parfumerie',statut:'legal'}, '1431':{rang:32,court:'Optique-lunetterie',statut:'legal'}, '0413':{rang:33,court:'CCN 66 (handicap)',statut:'partielle'}, '1516':{rang:34,court:'Organismes de formation',statut:'partielle'}, '1702':{rang:35,court:'Travaux publics ouvriers',statut:'partielle'}, '2378':{rang:36,court:'Intérimaires (travail temporaire)',statut:'legal'}, '0675':{rang:37,court:'Succursales habillement',statut:'partielle'}, '1404':{rang:38,court:'SDLM',statut:'partielle'}, '1413':{rang:39,court:'Permanents du travail temporaire',statut:'legal'}, '3237':{rang:40,court:'Commerce alimentaire spécialisé',statut:'legal'}, '2614':{rang:41,court:'Travaux publics ETAM',statut:'partielle'}, '2332':{rang:42,court:'Architecture',statut:'legal'}, '3090':{rang:43,court:'Spectacle vivant privé',statut:'legal'}, '2335':{rang:44,court:'Agences générales d\'assurances',statut:'legal'}, '1266':{rang:45,court:'Restauration de collectivités',statut:'partielle'}, '1880':{rang:46,court:'Négoce de l\'ameublement',statut:'legal'}, '3212':{rang:47,court:'Travaux publics cadres',statut:'legal'}, '1285':{rang:48,court:'Entreprises artistiques et culturelles',statut:'legal'}, '3216':{rang:49,court:'Négoce matériaux de construction',statut:'legal'}, '1539':{rang:50,court:'Bureau et numérique',statut:'legal'},
  '1596':{rang:1,court:'Bâtiment ouvriers ≤ 10 sal.',statut:'partielle'}, '1486':{rang:2,court:'Syntec',statut:'modelisee'}, '1979':{rang:3,court:'HCR',statut:'partielle'},
  '7024':{rang:4,court:'Production agricole et CUMA',statut:'partielle'}, '1090':{rang:5,court:'Services de l\'automobile',statut:'modelisee'}, '2609':{rang:6,court:'Bâtiment ETAM',statut:'modelisee'},
  '2420':{rang:7,court:'Bâtiment cadres',statut:'modelisee'}, '1501':{rang:8,court:'Restauration rapide',statut:'partielle'}, '3248':{rang:9,court:'Métallurgie',statut:'partielle'},
@@ -1209,10 +1406,11 @@ function compute(inp){
 
   /* 4. Convention */
   if(ccn){
-    const ctx={ mois, sr, sr12, sr3, age: out.age, categorie: inp.categorie, eco: !!inp.eco && motif==='lic' };
+    const srLast=+inp.srLast||0;
+    const ctx={ mois, sr, sr12, sr3, srLast, age: out.age, categorie: inp.categorie, eco: !!inp.eco && motif==='lic' };
     const r = ccn.conv(motif, ctx);
     const baseKey = (r && r.baseKey) || (ccn.basis==='sr12'?'sr12':'sr');
-    const base = baseKey==='sr12' ? sr12 : baseKey==='sr3' ? sr3 : sr;
+    const base = baseKey==='sr12' ? sr12 : baseKey==='sr3' ? sr3 : baseKey==='srMax3' ? Math.max(sr12,sr3,srLast) : sr;
     if(r){
       let cm=r.mois, extra='', expr=r.expr;
       if(motif==='inaptP' && r.doubleSiInaptP){ cm=cm*2; extra=' (doublée : inaptitude professionnelle)'; expr=`2*(${expr})`; }
@@ -1259,11 +1457,24 @@ function compute(inp){
     if(taux===0.3 && toISO(sortie)>='2026-01-01') out.alertes.push('Taux de 30 % saisi alors que la fin de contrat est en 2026 (40 % en principe).');
   }
   if(motif==='rc') out.alertes.push('Rupture conventionnelle : montant plancher. Les parties peuvent convenir d\'une indemnité supérieure (supra-légale).');
-  out.alertes.push('Montants bruts. Hors préavis, congés payés, régime social et fiscal.');
+  /* Licenciement économique : CSP */
+  if(motif==='lic' && inp.eco){
+    const num = v => (v===''||v==null||isNaN(+v)) ? null : +v;
+    if(inp.csp){
+      const srLast=+inp.srLast||0, salAuto = inp.preavisBase==='sr' ? sr : (srLast>0?srLast:sr), salRef = num(inp.preavisSal)>0 ? num(inp.preavisSal) : salAuto;
+      const moisAnc = Math.max(0,monthsBetween(entree,finEx));
+      out.csp = calculCsp({ moisAnc, preavisMois:num(inp.preavisMois), salaire:salRef, tauxCharges:num(inp.cspTaux), montantCharge:num(inp.cspMontant) });
+      out.csp.cout = r2(out.fin.total + (out.csp.ftCharge!==null?out.csp.ftCharge:out.csp.ft) + out.csp.salarie);
+      out.alertes.push(...out.csp.alertes);
+    } else {
+      out.alertes.push('Licenciement économique : dans les entreprises de moins de 1 000 salariés, le CSP doit être proposé à chaque salarié concerné. À défaut, France Travail réclame une contribution de 2 mois de salaire brut (refus) ou de 3 mois chargés (acceptation). Cochez « Le salarié accepte le CSP » pour calculer la contribution.');
+    }
+  }
+  out.alertes.push(out.csp ? 'Montants bruts. Hors congés payés et régime social et fiscal des sommes versées au salarié.' : 'Montants bruts. Hors préavis, congés payés, régime social et fiscal.');
   return out;
 }
 
-if(typeof module!=='undefined') module.exports={ regimeSocialFiscal, PASS_ANNUEL, RC_DEFAUT, ageAt, compute, MOTIFS, ABS_TYPES, CCN, CCN_META, STATUT_LABEL, parseISO, monthsBetween, legalMois, salaireDepuisMois, calendrierRC, arrondir, toISO, addDays };
+if(typeof module!=='undefined') module.exports={ calculCsp, preavisLegalMois, regimeSocialFiscal, PASS_ANNUEL, RC_DEFAUT, ageAt, compute, MOTIFS, ABS_TYPES, CCN, CCN_META, STATUT_LABEL, parseISO, monthsBetween, legalMois, salaireDepuisMois, calendrierRC, calendrierProcedure, arrondir, toISO, addDays };
 
 /* ===== Import d'une « fiche individuelle » Silae (12 mois de référence) =====
    Entrée : tableau de lignes (sheet_to_json header:1). Sortie : lignes classées + calcul par mois.
@@ -1505,7 +1716,7 @@ function buildWorkbook(XLSX, S, r, rows, legalLines){
   const legMontant = r.legal.eligible ? r.legal.montant : 0;
   put('B29', legMontant, { f: r.legal.eligible ? `MAX(C26,C27)*(${r.exprLegal})` : '0', v:legMontant, z:money });
   if(hasConv){
-    const baseRef = r.conv.baseKey==='sr12' ? 'C26' : 'MAX(C26,C27)';
+    const baseRef = r.conv.baseKey==='sr12' ? 'C26' : r.conv.baseKey==='srMax3' ? (sr.lastIdx>=0 ? `MAX(C26,C27,D${11+sr.lastIdx})` : 'MAX(C26,C27)') : 'MAX(C26,C27)';
     put('D29', r.conv.montant, { f:`${baseRef}*(${r.exprConv})`, v:r.conv.montant, z:money });
     put('B30','Légal'); put('D30','CCN');
   }
@@ -1558,8 +1769,9 @@ const PDF_BLOCS = [
   { id:'montants', label:'Indemnité retenue, arrondi et total' },
   { id:'contrib',  label:'Contribution patronale' },
   { id:'regime',   label:'Régime social et fiscal' },
+  { id:'csp',      label:'CSP et préavis (licenciement économique)' },
   { id:'hono',     label:'Honoraires du cabinet' },
-  { id:'cal',      label:'Calendrier de la rupture conventionnelle' },
+  { id:'cal',      label:'Calendrier de la procédure' },
   { id:'alertes',  label:'Points d\'attention' },
   { id:'notes',    label:'Notes et remarques' },
   { id:'regles',   label:'Règles appliquées et sources' }
@@ -1747,6 +1959,11 @@ function buildPdf(JsPDF, d){
       para('Cotisations salariales et impôt sur le revenu non calculés. Hors PSE et mandataires sociaux. PASS '+g.annee+' : '+fmtEur(g.pass)+'. Calcul indicatif, à valider sur le BOSS.', {size:8.5,color:MUT});
     }
   }
+  if(sel.has('csp') && !r.erreur && r.csp){
+    section('Contrat de sécurisation professionnelle (CSP)');
+    (d.cspRows||[]).forEach(([l,v,b])=>kv(l, v, {bold:!!b}));
+    r.csp.lignes.forEach(l=>bullet(l,{size:8.8,color:MUT}));
+  }
   /* ---------- 7. Calendrier ---------- */
   if(sel.has('cal') && S.motif==='rc' && cal && !cal.erreur){
     const o=cal.options, L=d.frL;
@@ -1762,6 +1979,13 @@ function buildPdf(JsPDF, d){
     kv('Rupture du contrat au plus tôt le', L(cal.ruptureAuPlusTot), {bold:true});
     cal.notes.forEach(n=>para(n,{size:8.8,color:WARN}));
     para('Délais : L1237-13 et L1237-14 ; prorogés si samedi, dimanche ou férié (R1231-1). '+(o.am?'Jours fériés d\'Alsace-Moselle inclus. ':'Jours fériés de France métropolitaine. ')+'Calendrier indicatif, à contrôler avec le simulateur TéléRC.', {size:8.3,color:MUT});
+  }
+  if(sel.has('cal') && S.motif!=='rc' && d.proc){
+    const L=d.frL; ensure(72);
+    section('Calendrier de la procédure');
+    d.proc.etapes.forEach(e=>{ kv(e.label, L(e.iso), {bold:e.key}); if(e.detail) para(e.detail,{size:8.3,color:MUT,gap:0}); });
+    d.proc.notes.forEach(n=>para(n,{size:8.8,color:/non respecté|antérieure|plus d'un mois|précède/.test(n)?WARN:MUT}));
+    para('Calendrier indicatif (dates au plus tôt) : délais en jours ouvrables hors dimanches et jours fériés, à contrôler avec les dispositions conventionnelles.',{size:8.3,color:MUT});
   }
   /* ---------- 8. Points d'attention ---------- */
   if(sel.has('alertes') && !r.erreur){
@@ -2002,6 +2226,8 @@ const TESTS = [
     inp:{motif:'lic',ccn:'3248',categorie:'fghi',age:57,entree:'2006-01-01',sortie:'2025-12-31',sr12:3000,sr3:3000}, mois:240, legal:17500, conv:35880, retenu:35880, calcul:'(1/5 × 7 + 3/5 × 13) × 1,3 = 11,96 mois × 3 000' },
   { nom:'Métallurgie (3248), groupe A à E, 12 ans, SR 3 000 €',
     inp:{motif:'lic',ccn:'3248',categorie:'abcde',age:40,entree:'2014-01-01',sortie:'2025-12-31',sr12:3000,sr3:3000}, mois:144, legal:9500, conv:9500, retenu:9500, calcul:'1/4 × 10 + 1/3 × 2 = 3,1667 mois × 3 000' },
+  { nom:'Experts-comptables (0787), départ volontaire, 12 ans, dernier salaire mensuel 3 200 € > moyennes 3 000 €',
+    inp:{motif:'departRet',ccn:'0787',entree:'2014-01-01',sortie:'2025-12-31',sr12:3000,sr3:3000,srLast:3200}, mois:144, legal:1500, conv:3840, retenu:3840, calcul:'1,2 mois × 3 200 € (plus favorable des 3 : moy. 12, moy. 3, dernier salaire mensuel)' },
   { nom:'Top 30 — Experts-comptables (0787), départ volontaire, 12 ans, SR 3 000 €',
     inp:{motif:'departRet',ccn:'0787',entree:'2014-01-01',sortie:'2025-12-31',sr12:3000,sr3:3000}, mois:144, legal:1500, conv:3600, retenu:3600, calcul:'½ mois + 1/10 × 7 = 1,2 mois × 3 000 (lecture à valider)' },
   { nom:'Syntec (site Fédération) — conventionnel sur 1/12 des 12 mois, légal sur le plus favorable',
@@ -2014,6 +2240,14 @@ const TESTS = [
     inp:{motif:'lic',ccn:'1486',categorie:'etam',entree:'2016-01-01',sortie:'2025-12-31',sr12:2000,sr3:2000,absences:[{type:'maladie',jours:100}]}, mois:120, legal:5000, conv:5000, retenu:5000, calcul:'aucune déduction (au lieu de 100 j déduits par le Code du travail)' },
   { nom:'Syntec art. 3.7 — maladie de 200 j (≥ 6 mois) : période déduite',
     inp:{motif:'lic',ccn:'1486',categorie:'etam',entree:'2016-01-01',sortie:'2025-12-31',sr12:2000,sr3:2000,absences:[{type:'maladie',jours:200}]}, mois:113, legal:4708.33, conv:4708.33, retenu:4708.33, calcul:'120 mois − 200 j (≈ 6,6 mois) → 113 mois ; 113/12 × 1/4 = 2,3542 mois × 2 000' },
+  { nom:'TP ouvriers (1702) — licenciement économique, 8 ans, 40 ans, SR 2 500 € : 3/20 × 8 + complément de 0,35 mois',
+    inp:{motif:'lic',ccn:'1702',eco:true,age:40,entree:'2017-01-01',sortie:'2024-12-31',sr12:2500,sr3:2500}, mois:96, legal:5000, conv:3875, retenu:5000, calcul:'8 × 3/20 = 1,2 + 0,35 = 1,55 mois × 2 500 = 3 875 € (recoupé avec le simulateur officiel) ; légal 5 000 € plus favorable' },
+  { nom:'TP ouvriers (1702) — licenciement économique, 25 ans, 58 ans : majoration 10 % et complément',
+    inp:{motif:'lic',ccn:'1702',eco:true,age:58,entree:'2000-01-01',sortie:'2024-12-31',sr12:2500,sr3:2500}, mois:300, legal:18750, conv:12562.5, retenu:18750, calcul:'(25 × 3/20 + 10 × 1/20) = 4,25 ; × 1,1 = 4,675 ; + 0,35 = 5,025 mois × 2 500 = 12 562,50 €' },
+  { nom:'Restauration de collectivités (1266) — cadre, 25 ans : barème progressif supérieur au légal',
+    inp:{motif:'lic',ccn:'1266',categorie:'cadre',age:45,entree:'2000-01-01',sortie:'2024-12-31',sr12:2500,sr3:2500}, mois:300, legal:18750, conv:20000, retenu:20000, calcul:'5 + 5/15 + 10/15 + 30/15 = 8 mois × 2 500 = 20 000 €' },
+  { nom:'Succursales habillement (0675) — cadre, 20 ans, 58 ans : barème art. 16 + majoration de 50 %',
+    inp:{motif:'lic',ccn:'0675',categorie:'cadre',age:58,entree:'2005-01-01',sortie:'2024-12-31',sr12:2500,sr3:2500}, mois:240, legal:14583.33, conv:18750, retenu:18750, calcul:'(15 × 1/5 + 5 × 2/5) = 5 mois × 1,5 = 7,5 mois × 2 500 = 18 750 € (recoupé avec le simulateur officiel)' },
 ];
 
 /* ---- Régime social et fiscal (V2.9) : cas calculés à la main ; PASS 2023 : 43 992 € · 2025 : 47 100 € · 2026 : 48 060 € ---- */
@@ -2044,7 +2278,27 @@ const REGIME_TESTS = [
     att:{irExo:0,irImposable:3000,cotisExo:0,cotisSoumis:3000,csgBase:3000,csgCrds:291,contrib:null}, calcul:'9,7 % × 3 000' }
 ];
 
-if(typeof module!=='undefined') module.exports={ TESTS, REGIME_TESTS };
+/* Licenciement économique : CSP (calculs à la main) */
+const CSP_TESTS = [
+  { nom:'CSP — 5 ans, préavis légal 2 mois, 3 000 €, charges 60 %', p:{moisAnc:60,preavisMois:null,salaire:3000,tauxCharges:60,montantCharge:null}, att:{preavis:2,icp:6000,ft:6000,ftCharge:9600,salarie:0} },
+  { nom:'CSP — 3 ans, préavis conventionnel 4 mois, 4 000 € : 3 mois à France Travail, 1 mois au salarié', p:{moisAnc:36,preavisMois:4,salaire:4000,tauxCharges:60,montantCharge:null}, att:{icp:16000,ft:12000,ftCharge:19200,salarie:4000} },
+  { nom:'CSP — 8 mois d\'ancienneté : préavis légal 1 mois dû au salarié, aucune contribution', p:{moisAnc:8,preavisMois:null,salaire:2500,tauxCharges:60,montantCharge:null}, att:{preavis:1,icp:2500,ft:0,ftCharge:null,salarie:2500} },
+  { nom:'CSP — montant chargé de la paie prioritaire sur le taux', p:{moisAnc:60,preavisMois:2,salaire:3000,tauxCharges:60,montantCharge:9000}, att:{ft:6000,ftCharge:9000} },
+  { nom:'CSP — exactement 12 mois d\'ancienneté : contribution due', p:{moisAnc:12,preavisMois:1,salaire:2000,tauxCharges:null,montantCharge:null}, att:{ft:2000,ftCharge:null,salarie:0} },
+  { nom:'CSP — préavis légal : 5 mois → 0, 6 mois → 1, 23 mois → 1, 24 mois → 2', legal:[[5,0],[6,1],[23,1],[24,2]] },
+  { nom:'CSP intégré — lic. éco 8 ans, 3 000 €, indemnité légale 6 000 € + contribution chargée 9 600 €', inp:{motif:'lic',ccn:'none',eco:true,csp:true,cspTaux:60,entree:'2018-01-01',sortie:'2025-12-31',sr12:3000,sr3:3000,srLast:3000}, att:{cout:15600,'fin.total':6000,ft:6000} }
+];
+
+const PROC_TESTS = [
+  { nom:'Licenciement personnel : convocation lun. 02/11/2026 (11/11 férié) → entretien 09/11, lettre 13/11, préavis 2 mois jusqu\'au 12/01/2027', m:'lic', cfg:{d0:'2026-11-02',moisAnc:30}, att:{ent:'2026-11-09', notif:'2026-11-13', fin:'2027-01-12'} },
+  { nom:'Licenciement économique cadre + CSP : lettre ≥ 15 jours ouvrables après l\'entretien, CSP 21 jours', m:'lic', cfg:{d0:'2026-11-02',moisAnc:30,eco:true,cadre:true,csp:true}, att:{ent:'2026-11-09', notif:'2026-11-28', fin:'2026-11-30'} },
+  { nom:'Licenciement économique non cadre : lettre ≥ 7 jours ouvrables après l\'entretien', m:'lic', cfg:{d0:'2026-03-02',moisAnc:30,eco:true}, att:{ent:'2026-03-09', notif:'2026-03-18'} },
+  { nom:'Inaptitude : rupture à la notification, reprise du salaire 1 mois après l\'avis', m:'inaptNP', cfg:{d0:'2026-12-21',avis:'2026-12-10',moisAnc:80}, att:{fin:'2027-01-02', repr:'2027-01-10'} },
+  { nom:'Départ volontaire : lettre le 31/01, préavis 2 mois (≥ 2 ans) jusqu\'au 30/03', m:'departRet', cfg:{d0:'2026-01-31',moisAnc:100}, att:{fin:'2026-03-30'} },
+  { nom:'Préavis d\'un mois commencé le 31/01/2026 : fin le 28/02', m:'departRet', cfg:{d0:'2026-01-31',moisAnc:12}, att:{fin:'2026-02-28'} },
+  { nom:'Mise à la retraite : interrogation 3 mois avant l\'anniversaire du 15/12/2026 → 15/09', m:'miseRet', cfg:{d0:'2026-10-20',anniv:'2026-12-15',moisAnc:100}, att:{interro:'2026-09-15'} },
+];
+if(typeof module!=='undefined') module.exports={ TESTS, REGIME_TESTS, CSP_TESTS, PROC_TESTS };
 
 /* Recoupement automatique avec le simulateur « Indemnité de licenciement » du Code du travail numérique (généré par compare3.js + gen-croisement.js, rejouable). */
 const CROISEMENT = {"retraite":{"n":68,"ko":0},"date":"21/11/2026","version":"@socialgouv/modeles-social 4.253.1","grille":"ancienneté de 1 à 32 ans (années pleines et demi-années), âge de 40 et 58 ans, salaire de référence de 2 500 €, chaque catégorie proposée, réponse « non » aux autres questions (sauf ancienneté de cadre : « oui »)","data":{"1043":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1090":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1147":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1483":{"n":48,"st":"neutre","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"1486":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"1501":{"n":48,"st":"assume","ex":[{"an":8,"age":40,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":8,"age":58,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":10,"age":40,"cat":"cadre","moi":6250,"off":7500,"nm":false},{"an":10,"age":58,"cat":"cadre","moi":6250,"off":7500,"nm":false},{"an":12,"age":40,"cat":"cadre","moi":7916.67,"off":8500,"nm":false},{"an":12,"age":58,"cat":"cadre","moi":7916.67,"off":8500,"nm":false}],"note":"Cadres : le moteur suit le texte de l'article 13 (2/15 de mois par année de 10 à 15 ans). Le simulateur officiel applique la majoration de 2/15 aux années de 5 à 10 ans et la cumule dès 5 ans (anomalie probable du modèle publicodes). À signaler au Code du travail numérique.","eco":{"n":48,"ko":8,"ex":[{"an":8,"age":40,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":8,"age":58,"cat":"cadre","moi":5000,"off":5500,"nm":false},{"an":10,"age":40,"cat":"cadre","moi":6250,"off":7500,"nm":false},{"an":10,"age":58,"cat":"cadre","moi":6708.33,"off":7500,"nm":false}]}},"1505":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1517":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1518":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1527":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1596":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1597":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1619":{"n":0,"st":"non_couvert","ex":[]},"1979":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"1996":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"2098":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"2216":{"n":72,"st":"concordant","ex":[],"eco":{"n":72,"ko":0,"ex":[]}},"2420":{"n":0,"st":"non_couvert","ex":[]},"2511":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"2596":{"n":120,"st":"concordant","ex":[],"eco":{"n":120,"ko":0,"ex":[]}},"2609":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"3043":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"3127":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"3248":{"n":48,"st":"concordant","ex":[],"eco":{"n":48,"ko":0,"ex":[]}},"7018":{"n":0,"st":"non_couvert","ex":[]},"7024":{"n":0,"st":"non_couvert","ex":[]},"0016":{"n":96,"st":"assume","ex":[{"an":3,"age":40,"cat":"cadre","moi":3000,"off":1875,"nm":false},{"an":3,"age":58,"cat":"cadre","moi":3000,"off":1875,"nm":false}],"note":"Cadres à exactement 3 ans d'ancienneté : le texte (art. 17, annexe IV) exige « au moins 3 années de présence » et le moteur applique 4/10 par année ; le simulateur officiel exige plus de 3 ans.","eco":{"n":96,"ko":2,"ex":[{"an":3,"age":40,"cat":"cadre","moi":3000,"off":1875,"nm":false},{"an":3,"age":58,"cat":"cadre","moi":3000,"off":1875,"nm":false}]}},"0573":{"n":72,"st":"neutre","ex":[],"eco":{"n":72,"ko":0,"ex":[]}},"0843":{"n":24,"st":"neutre","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"0787":{"n":24,"st":"concordant","ex":[],"eco":{"n":24,"ko":0,"ex":[]}},"0045":{"n":0,"st":"non_couvert","ex":[]}}};
@@ -2240,6 +2494,30 @@ RULES_DOC.push(
    items:[['Barème','Non relevé : légal appliqué.']], ambigu:['Texte intégral nécessaire.'], sources:[['LégiSocial',LS+'3043-proprete-et-services-associes/']] }
 );
 
+/* Rangs 31 à 50 (V3.5) : fiches relues dans KALI ; classement établi sur le nombre d'établissements (DSN juillet 2026, opcodirect.fr), rangs 26 à 60 déduits des tableaux sectoriels. */
+RULES_DOC.push(
+{ id:"1702", titre:"Travaux publics — ouvriers — IDCC 1702", items:[["Licenciement (art. 10.3)", "Ouvrier ne pouvant pas prétendre à une pension à taux plein : de 2 à 5 ans 1/10 de mois par année ; au-delà de 5 ans 3/20 par année depuis l'entrée ; 1/20 de plus par année au-delà de 15 ans ; majoration de 10 % au-delà de 55 ans."], ["Licenciement économique (art. 10.3.2)", "+ 35/100 de mois dès 5 ans ; de 2 à 5 ans : +70 % de l'indemnité."], ["Salaire (art. 10.5)", "Plus favorable des moyennes des 3 et des 12 derniers mois."]], ambigu:["Condition de non-accès à une pension à taux plein non contrôlée par l'outil.", "Retraite : non relevée (légal)."], sources:[["Légifrance — art. 10.3 (KALIARTI000005801849)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005801849"], ["Légifrance — art. 10.5 (KALIARTI000005801851)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005801851"], ["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"2614", titre:"Travaux publics — ETAM — IDCC 2614", items:[["Licenciement (art. 8.4 et 8.5)", "Dès 2 ans : 2,5/10 de mois par année jusqu'à 15 ans, 3,5/10 au-delà ; plafond 10 mois ; +10 % au-delà de 55 ans (après plafond). ETAM de 65 ans et plus : art. 8.7."], ["Salaire (art. 8.5)", "Dernier mois + 1/12 des éléments variables ; l'outil retient la plus favorable des moyennes 12 et 3 mois."]], ambigu:["Mise à la retraite (art. 8.7) et départ volontaire non modélisés."], sources:[["Légifrance — art. 8.5 (KALIARTI000018926426)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000018926426"], ["Légifrance — art. 8.4 (KALIARTI000018926425)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000018926425"], ["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"1266", titre:"Restauration de collectivités — IDCC 1266", items:[["Licenciement non-cadres (art. 14)", "1 an d'ancienneté, moins de 65 ans : 1/5 de mois par année + 2/15 par année au-delà de 10 ans."], ["Cadres (art. 14)", "Barème progressif (1/5 + 1/15 de 5 à 10 ans + 2/15 de 10 à 15 ans + 3/15 au-delà) ; le plus favorable avec le légal."], ["Salaire", "Plus favorable de 1/12 des 12 derniers mois ou 1/3 des 3 derniers (primes annuelles au prorata)."]], ambigu:["Retraite (art. 35) : indemnité de départ non modélisée."], sources:[["Légifrance — art. 14 (KALIARTI000021822343)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000021822343"], ["Légifrance — art. 35 (KALIARTI000018649415)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000018649415"], ["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"1516", titre:"Organismes de formation — IDCC 1516", items:[["Licenciement (art. 9.2, avenant du 6 février 2023)", "8 mois d'ancienneté ; 1/4 de mois par année jusqu'à 10 ans, 1/3 au-delà (identique au légal)."], ["Préavis (art. 9.1)", "Employés : 1 mois, 2 mois dès 2 ans ; agents de maîtrise et techniciens : 2 mois ; cadres : 3 mois."]], ambigu:["Retraite : dispositions propres non relevées."], sources:[["Légifrance — art. 9 (KALIARTI000047518146)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000047518146"], ["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"1404", titre:"Maintenance, distribution et location de matériels (SDLM) — IDCC 1404", provisoire:true, items:[["Licenciement", "Le simulateur officiel donne un résultat conventionnel identique au légal."]], ambigu:["Texte conventionnel à relire sur Légifrance (non retrouvé par mot-clé dans la base ouverte)."], sources:[["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"0675", titre:"Succursales de vente au détail d'habillement — IDCC 0675", items:[["Agents de maîtrise (art. 11)", "Dès 2 ans : 1/10 de mois par année jusqu'à 10 ans, + 2/5 par année au-delà ; plafond 9 mois ; +50 % de l'indemnité et du plafond dès 50 ans avec 20 ans de présence."], ["Cadres (art. 16)", "2 à 5 ans : 1/10 par année ; après 5 ans : 1/5 par année depuis l'entrée jusqu'à 15 ans, puis 2/5 ; plafond 12 mois ; même majoration de 50 % (constatée par le simulateur officiel)."], ["Employés", "Pas de barème propre : légal."]], ambigu:["Plafond de 6 mois (licenciements collectifs pour difficultés économiques) non appliqué à un licenciement individuel.", "Fin de carrière (art. 44) : moitié de l'indemnité de licenciement, non modélisée."], sources:[["Légifrance — art. 11 (KALIARTI000005851122)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005851122"], ["Légifrance — art. 16 (KALIARTI000005851148)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005851148"], ["Légifrance — art. 44 (KALIARTI000005851085)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005851085"], ["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"0413", titre:"Établissements pour personnes inadaptées et handicapées (CCN 66) — IDCC 0413", provisoire:true, items:[["Non-cadres (art. 17, non étendu)", "Dès 2 ans : 1/2 mois par année, plafond 6 mois ; salaire : moyenne des 3 derniers mois."], ["Cadres (annexe 6)", "1/2 mois par année comme non-cadre + 1 mois par année comme cadre, plafond 12 mois : non modélisé (répartition de l'ancienneté nécessaire)."]], ambigu:["Art. 17 non étendu : applicable aux employeurs adhérents.", "Plafond « rémunérations jusqu'à 65 ans » non appliqué."], sources:[["Légifrance — art. 17 (KALIARTI000005863126)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005863126"], ["Légifrance — annexe 6, art. 10 (KALIARTI000022837395)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000022837395"]] },
+{ id:"3032", titre:"Esthétique, parfumerie — IDCC 3032", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 3032)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"1431", titre:"Optique-lunetterie de détail — IDCC 1431", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 1431)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"2378", titre:"Intérimaires des entreprises de travail temporaire — IDCC 2378", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 2378)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"1413", titre:"Permanents des entreprises de travail temporaire — IDCC 1413", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 1413)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"3237", titre:"Commerce de détail alimentaire spécialisé — IDCC 3237", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 3237)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"2332", titre:"Entreprises d'architecture — IDCC 2332", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 2332)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"3090", titre:"Spectacle vivant privé — IDCC 3090", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 3090)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"2335", titre:"Agences générales d'assurances — IDCC 2335", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 2335)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"1880", titre:"Négoce de l'ameublement — IDCC 1880", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 1880)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"3212", titre:"Travaux publics — cadres — IDCC 3212", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 3212)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"1285", titre:"Entreprises artistiques et culturelles — IDCC 1285", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 1285)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"3216", titre:"Négoce des matériaux de construction — IDCC 3216", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 3216)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"1539", titre:"Bureau et numérique, commerces et services — IDCC 1539", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 1539)','https://www.legifrance.gouv.fr/liste/idcc']] }
+);
+
 /* ---------- Etat ---------- */
 const $ = id => document.getElementById(id);
 const blankMois = () => Array.from({length:12},()=>({brut:'',recon:'',inclus:true,note:''}));
@@ -2264,7 +2542,7 @@ applyTheme();
 try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme); }catch(e){}
 const DEFAULT = () => ({ id:null, nom:'', prenom:'', emploi:'', classif:'', statut:'', motif:'rc', ccn:'none', categorie:'etam', age:'', naissance:'', ageRef:'sortie',
   entree:'', sortie:'', dateRef:'', absences:[], mois:blankMois(),
-  eco:false, supra:'', remN1:'', droitRetraite:false, taux:'', honoraires:honoDefaut('rc'), honoAuto:true, auteur:PARAMS.auteur||'', arrondi:'', remCcn:'', remAbs:'', notes:'', cal:{...RC_DEFAUT} });
+  eco:false, csp:false, preavisBase:'dernier', preavisMois:'', preavisSal:'', cspTaux:PARAMS.cspTaux||'', cspMontant:'', supra:'', remN1:'', droitRetraite:false, taux:'', honoraires:honoDefaut('rc'), honoAuto:true, auteur:PARAMS.auteur||'', arrondi:'', remCcn:'', remAbs:'', notes:'', cal:{...RC_DEFAUT} });
 let S = DEFAULT();
 
 const monthDates = () => {
@@ -2276,19 +2554,20 @@ const monthLabel = d => d.toLocaleDateString('fr-FR',{month:'long',year:'numeric
 const monthRows = () => { const ds=monthDates(); return S.mois.map((m,i)=>({ ...m, date:toISO(ds[i]), label:monthLabel(ds[i]) })); };
 function inpFromS(){
   const sal = salaireDepuisMois(S.mois);
-  return { ...S, eco:!!S.eco && S.motif==='lic', sr12:sal.sr12, sr3:sal.sr3, taux:S.taux, honoraires:S.honoraires };
+  return { ...S, eco:!!S.eco && S.motif==='lic', csp:!!S.csp, sr12:sal.sr12, sr3:sal.sr3, srLast:sal.srLast, taux:S.taux, honoraires:S.honoraires };
 }
 
 /* ---------- Formulaire ---------- */
-const TXT = ['nom','prenom','emploi','classif','statut','naissance','ageRef','age','entree','sortie','dateRef','supra','remN1','taux','honoraires','arrondi','remCcn','remAbs','notes','auteur','motif','ccn','categorie'];
+const TXT = ['nom','prenom','emploi','classif','statut','naissance','ageRef','age','entree','sortie','dateRef','supra','remN1','taux','honoraires','arrondi','remCcn','remAbs','notes','auteur','preavisMois','preavisBase','preavisSal','cspTaux','cspMontant','motif','ccn','categorie'];
 function initForm(){
+  $('fill-val').value='';
   $('motif').innerHTML = Object.entries(MOTIFS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
   $('ccn').innerHTML = '<option value="none">Code du travail seul (sans convention)</option>' + ccnEntries().map(e=>`<option value="${e.id}">${e.rang?String(e.rang).padStart(2,'0')+' · ':''}${e.court} — ${e.id}${e.statut==='legal'?' (légal appliqué)':''}</option>`).join('');
   push();
 }
 function push(){
   TXT.forEach(k=>{ const el=$(k); if(el && el.type!=='checkbox') el.value = S[k]==null?'':S[k]; });
-  $('eco').checked=!!S.eco; $('droitRetraite').checked=!!S.droitRetraite; syncCcnFields(); renderAbs(); renderMonths(); buildCalCtl();
+  $('eco').checked=!!S.eco; $('csp').checked=!!S.csp; $('droitRetraite').checked=!!S.droitRetraite; syncCcnFields(); renderAbs(); renderMonths(); buildCalCtl();
 }
 function syncCcnFields(){
   const c = CCN[S.ccn];
@@ -2301,6 +2580,7 @@ function syncCcnFields(){
   }
   $('w-eco').hidden = S.motif!=='lic';
   $('w-droit').hidden = S.motif!=='rc';
+  $('w-csp').hidden = !(S.motif==='lic' && S.eco); $('w-csp-f').hidden = !S.csp;
   const rc = S.motif==='rc';
   $('ref-lab').textContent = rc ? 'Date de signature' : 'Date de notification';
 }
@@ -2336,6 +2616,17 @@ function updateAvgs(){
 /* ---------- Résultat ---------- */
 let lastText='';
 const fr = iso => iso ? iso.split('-').reverse().join('/') : '';
+function cspRows(r){
+  const c=r.csp; if(!c) return [];
+  const rows=[[`Préavis équivalent (${fmtMois(c.preavis)} mois${c.auto?', minimum légal':''})`,fmtEur(c.icp)]];
+  if(c.plus1an){
+    rows.push(['Contribution à France Travail (brut, 3 mois maximum)',fmtEur(c.ft)]);
+    if(c.ftCharge!==null) rows.push([`Contribution chargée (${c.mode==='paie'?'montant de la paie':'estimation'})`,fmtEur(c.ftCharge)]);
+    if(c.salarie>0) rows.push(['Excédent de préavis à verser au salarié (au-delà de 3 mois)',fmtEur(c.salarie)]);
+  } else rows.push(['Indemnité de préavis à verser au salarié (moins d\'un an d\'ancienneté)',fmtEur(c.salarie)]);
+  rows.push(['Coût total à prévoir (indemnité de licenciement + CSP)',fmtEur(c.cout),true]);
+  return rows;
+}
 function regimeRows(r){
   const g=r.regime, f=r.fin; if(!g||g.manque) return [];
   const rows=[['Fraction exonérée d\'impôt sur le revenu',g.irExo],['Fraction imposable',g.irImposable],['Exonérée de cotisations sociales',g.cotisExo],['Soumise à cotisations sociales',g.cotisSoumis],['Base de CSG/CRDS (9,7 %)',g.csgBase],['CSG/CRDS à la charge du salarié',g.csgCrds]];
@@ -2350,7 +2641,7 @@ function render(){
   const r = compute(inpFromS());
   $('anc').innerHTML = r.mois||!r.erreur||r.mois===0 ? (parseISO(S.entree)&&parseISO(S.sortie)&&parseISO(S.sortie)>=parseISO(S.entree) ? `Ancienneté retenue <b>${fmtAnc(r.mois)}</b> <span class="hint" style="margin:0">du ${fr(S.entree)} au ${fr(S.sortie)}</span>` : 'Ancienneté : renseignez les dates.') : 'Ancienneté : renseignez les dates.';
   renderAge(r);
-  renderCal();
+  renderCal(); renderProc(r);
   if(!$('pdf-panel').hidden) renderPdfPanel();
   const box = $('result');
   if(r.erreur){ box.innerHTML = `<div class="res-top"><div class="res-lab">Indemnité de rupture</div><div class="res-big">—</div></div><div class="err">${r.erreur}</div>`; lastText=''; return; }
@@ -2379,7 +2670,15 @@ function render(){
       regTxt=['','Régime social et fiscal :',...rows.map(([l,v])=>`- ${l} : ${fmtEur(v)}`)];
     }
   }
-  const formule = `Légal : MAX(moy.12 ; moy.3) × (${r.exprLegal})` + (r.exprConv ? `\nCCN : ${r.conv.baseKey==='sr12'?'moy.12':'MAX(moy.12 ; moy.3)'} × (${r.exprConv})` : '');
+  let cspHtml='', cspTxt=[];
+  if(r.csp){
+    const c=r.csp, rows=cspRows(r);
+    cspHtml=`<div class="sec"><h3>Contrat de sécurisation professionnelle (CSP)</h3><div class="kvl">${rows.map(([l,v,b])=>`<div${b?' class="tot"':''}><span>${l}</span><b>${v}</b></div>`).join('')}</div>
+      <ul class="plain" style="font-size:12.5px;margin-top:6px">${c.lignes.map(l=>`<li>${l}</li>`).join('')}</ul>
+      <details style="margin-top:6px"><summary class="hint" style="cursor:pointer">Sources du calcul du CSP</summary><ul class="plain" style="font-size:12.5px;margin-top:6px">${CSP_SOURCES.map(s=>`<li><a href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a></li>`).join('')}</ul></details></div>`;
+    cspTxt=['','CSP :',...rows.map(([l,v])=>`- ${l} : ${v}`)];
+  }
+  const formule = `Légal : MAX(moy.12 ; moy.3) × (${r.exprLegal})` + (r.exprConv ? `\nCCN : ${r.conv.baseKey==='sr12'?'moy.12':r.conv.baseKey==='srMax3'?'MAX(moy.12 ; moy.3 ; dernier salaire)':'MAX(moy.12 ; moy.3)'} × (${r.exprConv})` : '');
   const al = r.alertes.map((a,i)=>`<div class="alert${i===r.alertes.length-1?' neutral':''}">${a}</div>`).join('');
   box.innerHTML = `
    <div class="res-top"><div class="res-lab">${motifTxt}</div>
@@ -2388,6 +2687,7 @@ function render(){
    <div class="cmp">${cmp}</div>
    <div class="sec"><h3>Montants</h3><div class="kvl">${fin}</div><div class="formula">${formule.replace(/\n/g,'<br>')}</div></div>
    ${regHtml}
+   ${cspHtml}
    <div class="sec"><h3>Détail du calcul</h3><ol class="steps">${steps}<li>${r.legal.texte}</li>${r.conv?r.conv.lignes.map(l=>`<li>${l}</li>`).join(''):''}<li><b>Retenu : ${fmtEur(r.retenu.montant)}</b> (${r.retenu.source})</li></ol></div>
    <div class="sec"><h3>Points d'attention</h3><div class="alerts">${al}</div></div>
    <div class="sec"><button class="btn primary" id="copy" type="button">Copier le détail</button><span class="hint" id="copy-msg" style="margin-left:8px"></span><textarea class="copybox" id="copybox" hidden readonly></textarea></div>`;
@@ -2395,7 +2695,7 @@ function render(){
     ...r.lignes, r.legal.texte, ...(r.conv?r.conv.lignes:[]), '', formule, '', `Indemnité retenue : ${fmtEur(f.retenuArrondi)}`,
     ...(f.supra>0?[`Supra-légale : ${fmtEur(f.supra)}`,`Total : ${fmtEur(f.total)}`]:[]),
     ...(f.taux!==null?[`Contribution patronale ${Math.round(f.taux*100)} % : ${fmtEur(f.contrib)}`]:[]),
-    ...regTxt,
+    ...regTxt, ...cspTxt,
     '', 'Points d\'attention :', ...r.alertes.map(a=>'- '+a),
     ...((S.notes||'').trim()?['','Notes :',(S.notes||'').trim()]:[])].join('\n');
 }
@@ -2458,6 +2758,54 @@ function renderCal(){
     ${acts.length?`<div class="cal-act">${acts.join('')}</div>`:''}
     <div class="cal-note">Règles : rétractation de 15 jours calendaires à partir du lendemain de la signature (L1237-13) ; instruction de 15 jours ouvrables à partir du lendemain de la réception (L1237-14) ; un délai qui expire un samedi, un dimanche ou un jour férié est prorogé au premier jour ouvrable suivant (R1231-1). ${cfg.am?'Jours fériés d\'Alsace-Moselle inclus.':'Jours fériés de France métropolitaine.'} Calendrier indicatif : <a href="https://www.telerc.travail.gouv.fr/simulateur/calendrier" target="_blank" rel="noopener">contrôler avec le simulateur TéléRC ↗</a></div>`;
 }
+
+/* ---------- calendrier de la procédure (hors rupture conventionnelle) ---------- */
+const PROC_TITRES = { lic:'Calendrier du licenciement', inaptNP:'Calendrier du licenciement pour inaptitude', inaptP:'Calendrier du licenciement pour inaptitude', miseRet:'Calendrier de la mise à la retraite', departRet:'Calendrier du départ à la retraite' };
+function procCfg(r){
+  const p=Object.assign({}, S.proc||{}), m=S.motif;
+  const notifDirecte = m==='miseRet'||m==='departRet';
+  return Object.assign({}, p, { d0: notifDirecte ? S.dateRef : p.d0, eco: !!S.eco && m==='lic', csp: !!S.csp && !!S.eco && m==='lic',
+    preavisMois: S.preavisMois, moisAnc: r&&r.mois!=null ? r.mois : 0 });
+}
+function buildProcIn(){
+  const m=S.motif, p=S.proc||{}, f=(k,l,type)=>`<label class="f"><span>${l}</span><input type="date" data-pk="${k}" value="${esc(p[k]||'')}"></label>`;
+  const rows=[];
+  if(m==='lic'||m==='inaptNP'||m==='inaptP'){ rows.push(f('d0','Convocation à l\'entretien (1re présentation ou remise)')); rows.push(f('ent','Entretien préalable (facultatif)')); rows.push(f('notif','Notification du licenciement (facultatif)')); }
+  if(m==='inaptNP'||m==='inaptP') rows.push(f('avis','Avis d\'inaptitude (facultatif)'));
+  if(m==='miseRet') rows.push(f('anniv','Anniversaire concerné (si moins de 70 ans, facultatif)'));
+  const cadre = (m==='lic'&&S.eco) ? `<label class="chk"><input type="checkbox" data-pk="cadre"${p.cadre?' checked':''}><span>Salarié cadre (15 jours ouvrables au lieu de 7)</span></label>` : '';
+  const notifHint = (m==='miseRet'||m==='departRet') ? `<div class="hint">Date de notification : celle de l'encadré 2 (« Dates et ancienneté »).</div>` : '';
+  $('proc-in').innerHTML = `${notifHint}${rows.length?`<div class="cal-row">${rows.join('')}</div>`:''}<div class="cal-opts">${cadre}<label class="chk"><input type="checkbox" data-pk="am"${p.am?' checked':''}><span>Jours fériés d'Alsace-Moselle (Vendredi saint, 26 décembre)</span></label></div>`;
+}
+function procStepsHtml(c){
+  return `<ol class="calsteps">${c.etapes.map(e=>`<li class="${e.key?'key':''}"><span>${esc(e.label)}</span><b>${frL(e.iso)}</b>${e.detail?`<span class="sb">${esc(e.detail)}</span>`:''}</li>`).join('')}</ol>`;
+}
+let _procMotif=null;
+function renderProc(r){
+  const card=$('proc-card');
+  if(S.motif==='rc'){ card.hidden=true; _procMotif=null; return; }
+  if(card.hidden || _procMotif!==S.motif+(S.eco?'e':'')){ card.hidden=false; _procMotif=S.motif+(S.eco?'e':''); $('proc-h').textContent=PROC_TITRES[S.motif]+(S.motif==='lic'&&S.eco?' économique':''); buildProcIn(); }
+  const cfg=procCfg(r), out=$('proc-out'), c=calendrierProcedure(S.motif,cfg);
+  if(!c){ out.innerHTML=`<div class="hint" style="margin-top:8px">${S.motif==='miseRet'||S.motif==='departRet'?'Renseignez la date de notification (encadré 2).':'Saisissez la date de convocation à l\'entretien.'}</div>`; return; }
+  const acts=[];
+  if((S.motif==='lic'||S.motif==='inaptNP'||S.motif==='inaptP') && c.etapes.length){ const n=c.etapes.find(e=>/^Notification du licenciement/.test(e.label)); if(n && n.iso!==S.dateRef) acts.push(`<button class="btn sm" type="button" data-papply="notif">Reporter la notification (${fr(n.iso)}) dans la date de référence</button>`); }
+  if(c.fin && c.fin!==S.sortie) acts.push(`<button class="btn sm" type="button" data-papply="fin">Prendre la fin de contrat calculée (${fr(c.fin)})</button>`);
+  const pre = (S.motif==='lic'||S.motif==='miseRet'||S.motif==='departRet') && (S.preavisMois===''||S.preavisMois==null) ? `<div class="cal-note">Préavis retenu : ${fmtMois(c.preavisMois)} mois (durée légale selon l'ancienneté ; renseignez la durée conventionnelle dans « Durée du préavis » si elle est plus longue).</div>` : '';
+  out.innerHTML = `${c.notes.filter(n=>!/^Les jours fériés/.test(n)&&/non respecté|antérieure|plus d'un mois|précède/.test(n)).map(n=>`<div class="alert" style="margin-top:10px">${esc(n)}</div>`).join('')}
+    ${procStepsHtml(c)}${acts.length?`<div class="cal-act">${acts.join('')}</div>`:''}${pre}
+    <div class="cal-note">${c.notes.filter(n=>!/non respecté|antérieure|plus d'un mois|précède/.test(n)).map(esc).join(' ')} Calendrier indicatif (dates au plus tôt), à contrôler avec les dispositions conventionnelles et la situation du salarié.</div>`;
+}
+function initProc(){
+  const card=$('proc-card');
+  const upd=e=>{ const k=e.target.dataset.pk; if(!k) return; S.proc=Object.assign({},S.proc||{}); S.proc[k]=e.target.type==='checkbox'?e.target.checked:e.target.value; render(); };
+  card.addEventListener('input',upd); card.addEventListener('change',upd);
+  card.addEventListener('click',e=>{ const a=e.target.closest('[data-papply]'); if(!a) return;
+    const c=calendrierProcedure(S.motif,procCfg(compute(inpFromS()))); if(!c) return;
+    if(a.dataset.papply==='fin'){ S.sortie=c.fin; $('sortie').value=S.sortie; }
+    else { const n=c.etapes.find(x=>/^Notification du licenciement/.test(x.label)); if(!n) return; S.dateRef=n.iso; $('dateRef').value=S.dateRef; }
+    renderMonths(); render(); });
+}
+
 function initCal(){
   const card=$('cal-card');
   card.addEventListener('click',e=>{
@@ -2477,14 +2825,32 @@ const VKEY='indemnites-validation-v1';
 function loadV(){ try{ return JSON.parse(localStorage.getItem(VKEY)||'{}'); }catch(e){ return {}; } }
 function saveV(v){ try{ localStorage.setItem(VKEY,JSON.stringify(v)); }catch(e){} }
 const RS = { q:'', f:'all', sel:'cdt' };
-const FILTERS = [['all','Toutes'],['top','Top 30'],['modelisee','Barème modélisé'],['partielle','Partielles'],['legal','Légal appliqué'],['valid','Validées'],['secu','À sécuriser']];
+const FILTERS = [['all','Toutes'],['top','Top 50'],['modelisee','Barème modélisé'],['partielle','Partielles'],['legal','Légal appliqué'],['valid','Validées'],['secu','À sécuriser']];
 function ccnEntries(){
   return Object.keys(CCN).map(id=>{ const m=CCN_META[id]||{}; return { id, court:m.court||CCN[id].nom, rang:m.rang==null?null:m.rang, statut:m.statut||'partielle' }; })
     .sort((a,b)=>((a.rang==null)-(b.rang==null)) || (a.rang-b.rang) || a.id.localeCompare(b.id));
 }
+/* Sources du CSP (licenciement économique), consultées le 21/11/2026 */
+const CSP_SOURCES = [
+  ['France Travail — CSP : réponses aux employeurs (contribution, ancienneté, charges)','https://www.francetravail.fr/employeur/vos-declarations-et-cotisations/la-fin-de-vos-contrats-de-travai/proposer-le-csp--les-reponses-au.html'],
+  ['Unédic — proposer le CSP : obligations de l\'employeur (3 mois, charges, échéance de paiement)','https://www.unedic.org/l-assurance-chomage-et-vous/employeur-du-secteur-prive/mes-demarches/je-propose-le-csp-a-un-salarie-quelles-sont-mes-obligations'],
+  ['Service-public — CSP : indemnités versées au salarié','https://www.service-public.gouv.fr/particuliers/vosdroits/F13819?lang=fr'],
+  ['Justice.fr — indemnité compensatrice de préavis, cas du CSP','https://www.justice.fr/fiche/indemnite-compensatrice-preavis-licenciement-demission'],
+  ['SVP — le préavis versé dans le cadre du CSP n\'ouvre pas droit à congés payés','https://www.svp.com/note-expert/ressources-humaines/droit-social-emploi-recrutement/en-cas-de-versement-d-une-indemnite-compensatrice-de-preavis-a-un-salarie-adherant-au-contrat-de-securisation-professionnelle-csp-faut-il-calculer-et-verser-une-indemnite-compensatrice-de-conges-payes-sur-ce-preavis'],
+  ['Paie-News — indemnité compensatrice de préavis : CSP, 3 mois, sans congés payés','https://www.paie-news.fr/Rupture-Contrat-Travail/Indemnit%C3%A9-compensatrice-preavis.html'],
+  ['calculdesalaire.fr — préavis ordinaire (avec 10 % de congés payés), pour comparaison','https://calculdesalaire.fr/calcul-indemnite-compensatrice-preavis-salaire.html'],
+  ['Voltaire Avocats — Cass. soc. 18 mars 2026, n° 24-21.643 : contribution due (L1233-69)','https://www.voltaire-avocats.com/fr/contrat-de-securisation-professionnelle-la-contribution-de-lemployeur-reste-due-meme-si-le-salarie-retrouve-un-emploi/']
+];
+(()=>{
+  const cdt = RULES_DOC.find(d=>d.id==='cdt');
+  cdt.items.push(['Licenciement économique : CSP','Salarié d\'au moins 1 an d\'ancienneté : l\'employeur verse à France Travail l\'indemnité de préavis que le salarié aurait perçue (rémunération qu\'il aurait reçue en exécutant le préavis), dans la limite de 3 mois, majorée des cotisations et contributions obligatoires ; l\'excédent est versé au salarié. Moins d\'un an : préavis dû au salarié, aucune contribution. Pas de congés payés (10 %) sur ce préavis équivalent ; l\'ICCP des congés non pris est due au solde de tout compte. Contribution due même si le salarié retrouve un emploi (Cass. soc. 18/03/2026). Paiement à France Travail au plus tard le 25 du 2e mois civil suivant le début du CSP.']);
+  CSP_SOURCES.forEach(s=>cdt.sources.push(s));
+  const c787 = RULES_DOC.find(d=>d.id==='0787');
+  if(c787){ c787.sources.push(['Tissot — CCN experts-comptables, rupture (départ volontaire : dernier salaire mensuel)','https://www.editions-tissot.fr/acheter-convention-collective/ccn-cabinets-experts-comptables-rupture-contrat'],['Fiche-paie.fr — départ et mise à la retraite IDCC 0787 (art. 6.2.4.1)','https://fiche-paie.fr/convention-collective/experts-comptables-commissaires-aux-comptes-0787/depart-retraite'],['Payfit — retraite dans la CCN des experts-comptables (exemple chiffré)','https://payfit.com/fr/ccn/cabinets-experts-comptables/retraite/']); }
+})();
 const SRC_HOSTS = {
-  n1:['legifrance.gouv.fr','code.travail.gouv.fr','boss.gouv.fr','securite-sociale.fr','service-public.fr','justice.fr','francetravail.org','travail-emploi.gouv.fr','telerc.travail.gouv.fr','urssaf.fr','data.gouv.fr','dila.gouv.fr','courdecassation.fr'],
-  n2:['syntec.fr','legisocial.fr','ffbatiment.fr','capeb.fr','umih.fr','uimm.fr']
+  n1:['legifrance.gouv.fr','code.travail.gouv.fr','boss.gouv.fr','securite-sociale.fr','service-public.fr','justice.fr','francetravail.org','travail-emploi.gouv.fr','telerc.travail.gouv.fr','urssaf.fr','data.gouv.fr','dila.gouv.fr','courdecassation.fr','service-public.gouv.fr','francetravail.fr','unedic.org'],
+  n2:['svp.com','paie-news.fr','editions-tissot.fr','voltaire-avocats.com','fiche-paie.fr','payfit.com','calculdesalaire.fr','syntec.fr','legisocial.fr','ffbatiment.fr','capeb.fr','umih.fr','uimm.fr']
 };
 const TIER_LABEL = { n1:'Officiel', n2:'Branche / synthèse', n3:'À remplacer', gen:'Générique' };
 function tierOf(url){
@@ -2630,16 +2996,16 @@ function pdfData(r){
   const c = CCN[S.ccn];
   const cat = c && c.categories ? (c.categories.find(x=>x[0]===S.categorie)||[])[1] : '';
   const f = r.fin;
-  const formule = r.erreur ? '' : `Légal : MAX(moy.12 ; moy.3) × (${r.exprLegal})` + (r.exprConv ? `\nCCN : ${r.conv.baseKey==='sr12'?'moy.12':'MAX(moy.12 ; moy.3)'} × (${r.exprConv})` : '');
+  const formule = r.erreur ? '' : `Légal : MAX(moy.12 ; moy.3) × (${r.exprLegal})` + (r.exprConv ? `\nCCN : ${r.conv.baseKey==='sr12'?'moy.12':r.conv.baseKey==='srMax3'?'MAX(moy.12 ; moy.3 ; dernier salaire)':'MAX(moy.12 ; moy.3)'} × (${r.exprConv})` : '');
   const regles = RULES_DOC.filter(d=>d.id===S.ccn || d.id==='cdt');
   return { S, r, rows:monthRows(), opts:{ style:PDFS.style||'site', accent:couleurHex(), sel:PDFS.sel, titre:$('pdf-titre').value.trim(), entete:PDFS.entete, note:PDFS.note },
-    MOTIFS, ccnNom: S.ccn==='none'?'':c.nom, regles, cal:calendrierRC(S.dateRef, calCfg()), frL, fmtEur, fr, fmtAnc,
+    MOTIFS, ccnNom: S.ccn==='none'?'':c.nom, regles, cal:calendrierRC(S.dateRef, calCfg()), proc:(S.motif==='rc'?null:calendrierProcedure(S.motif, procCfg(r))), frL, fmtEur, fr, fmtAnc,
     sr12:sal.sr12, sr3:sal.sr3, categorieLabel:cat||'', ageTxt:r.age!=null?r.age+' ans'+(r.ageSource==='naissance'?' (né le '+fr(S.naissance)+')':''):'', formule,
-    regimeRows: regimeRows(r), dateJour: new Date().toLocaleDateString('fr-FR') };
+    regimeRows: regimeRows(r), cspRows: cspRows(r), dateJour: new Date().toLocaleDateString('fr-FR') };
 }
 async function exportPdf(){
   const r = compute(inpFromS());
-  if(r.erreur && PDFS.sel.some(x=>['cmp','detail','montants','contrib','hono','alertes'].includes(x))){ pdfMsg(r.erreur); return; }
+  if(r.erreur && PDFS.sel.some(x=>['cmp','detail','montants','contrib','csp','hono','alertes'].includes(x))){ pdfMsg(r.erreur); return; }
   if(!PDFS.sel.length){ pdfMsg('Cochez au moins un bloc.'); return; }
   pdfMsg('Préparation du PDF…');
   try{ await loadJsPdf(); }catch(e){ pdfMsg('Bibliothèque PDF indisponible (réseau).'); return; }
@@ -2651,7 +3017,7 @@ async function exportPdf(){
 }
 async function buildImageBlob(){
   const r = compute(inpFromS());
-  if(r.erreur && PDFS.sel.some(x=>['cmp','detail','montants','contrib','regime','hono','alertes'].includes(x))){ pdfMsg(r.erreur); return null; }
+  if(r.erreur && PDFS.sel.some(x=>['cmp','detail','montants','contrib','regime','csp','hono','alertes'].includes(x))){ pdfMsg(r.erreur); return null; }
   if(!PDFS.sel.length){ pdfMsg('Cochez au moins un bloc.'); return null; }
   const d = pdfData(r); d.opts.single = true;
   const doc = buildPdf(function(){ return makeCanvasDoc(7); }, d);
@@ -2675,13 +3041,14 @@ function renderParams(){
   const cur = COULEURS.find(c=>c[0]===PARAMS.couleur)||COULEURS[0];
   $('sw').innerHTML = COULEURS.map(c=>`<button type="button" data-col="${c[0]}" style="background:${c[2]}" title="${c[1]}" aria-label="${c[1]}" aria-pressed="${c[0]===cur[0]}"></button>`).join('');
   $('sw-lab').textContent = cur[1]+' · sur cet appareil';
-  $('p-auteur').value = PARAMS.auteur||'';
+  $('p-auteur').value = PARAMS.auteur||''; $('p-csptaux').value = PARAMS.cspTaux||'';
   $('hgrid').innerHTML = Object.entries(MOTIFS).map(([k,v])=>`<label class="f"><span>${v} (€)</span><input type="number" min="0" step="0.01" inputmode="decimal" data-hk="${k}" value="${honoDefaut(k)}"></label>`).join('');
 }
 function initParams(){
   renderParams();
   $('sw').addEventListener('click',e=>{ const b=e.target.closest('button[data-col]'); if(!b) return; PARAMS.couleur=b.dataset.col; saveParams(); applyTheme(); renderParams(); });
   $('p-auteur').addEventListener('input',e=>{ const prev=PARAMS.auteur||''; PARAMS.auteur=e.target.value; saveParams(); if(!S.auteur || S.auteur===prev){ S.auteur=PARAMS.auteur; $('auteur').value=S.auteur; } });
+  $('p-csptaux').addEventListener('input',e=>{ const prev=PARAMS.cspTaux||''; PARAMS.cspTaux=e.target.value; saveParams(); if(!S.cspTaux || String(S.cspTaux)===String(prev)){ S.cspTaux=PARAMS.cspTaux; $('cspTaux').value=S.cspTaux; render(); } });
   $('hgrid').addEventListener('input',e=>{ const k=e.target.dataset.hk; if(!k) return; PARAMS.hono[k]=e.target.value; saveParams();
     if(S.honoAuto && S.motif===k){ S.honoraires=e.target.value; $('honoraires').value=S.honoraires; render(); } });
 }
@@ -2809,7 +3176,8 @@ function bind(){
       render();
     });
   });
-  $('eco').addEventListener('change',()=>{ S.eco=$('eco').checked; render(); });
+  $('eco').addEventListener('change',()=>{ S.eco=$('eco').checked; syncCcnFields(); render(); });
+  $('csp').addEventListener('change',()=>{ S.csp=$('csp').checked; syncCcnFields(); render(); });
   $('droitRetraite').addEventListener('change',()=>{ S.droitRetraite=$('droitRetraite').checked; render(); });
   $('abs-add').addEventListener('click',()=>{ S.absences.push({type:'maladie',jours:30}); renderAbs(); render(); });
   $('abs-list').addEventListener('input',e=>{
@@ -2847,7 +3215,7 @@ function bind(){
     ioMsg(saveF(f) ? 'Fiche enregistrée dans ce navigateur.' : 'Enregistrement impossible ici : utilisez l\'export.'); renderSaved();
   });
   $('b-del').addEventListener('click',()=>{ if(!S.id) return; const f=loadF(); delete f[S.id]; saveF(f); S=DEFAULT(); push(); render(); renderSaved(); ioMsg('Fiche supprimée.'); });
-  $('saved').addEventListener('change',e=>{ const id=e.target.value; if(!id) return; const f=loadF(); if(f[id]){ S=Object.assign(DEFAULT(),{honoAuto:false,auteur:''},JSON.parse(JSON.stringify(f[id]))); push(); render(); ioMsg('Fiche ouverte.'); } });
+  $('saved').addEventListener('change',e=>{ const id=e.target.value; if(!id) return; const f=loadF(); if(f[id]){ S=Object.assign(DEFAULT(),{honoAuto:false,auteur:'',cspTaux:'',preavisBase:'dernier'},JSON.parse(JSON.stringify(f[id]))); push(); render(); ioMsg('Fiche ouverte.'); } });
 
   $('silae-file').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) importSilae(f); e.target.value=''; });
   $('silae-panel').addEventListener('change',e=>{
@@ -2860,12 +3228,12 @@ function bind(){
     if(e.target.closest('#sl-close')){ SIL=null; renderSilae(); }
   });
   $('b-xlsx').addEventListener('click',exportXlsx);
-  initPdf(); initCal();
+  initPdf(); initCal(); initProc();
   $('b-json').addEventListener('click',()=>saveFile(fname('json'), JSON.stringify(S,null,1)));
   $('b-import').addEventListener('change',e=>{
     const file=e.target.files[0]; if(!file) return;
     const rd=new FileReader();
-    rd.onload=()=>{ try{ const o=JSON.parse(rd.result); if(!o||typeof o!=='object'||!('entree' in o)) throw 0; S=Object.assign(DEFAULT(),{honoAuto:false,auteur:''},o,{id:null}); push(); render(); renderSaved(); ioMsg('Fiche importée.'); }catch(err){ ioMsg('Fichier non reconnu.'); } };
+    rd.onload=()=>{ try{ const o=JSON.parse(rd.result); if(!o||typeof o!=='object'||!('entree' in o)) throw 0; S=Object.assign(DEFAULT(),{honoAuto:false,auteur:'',cspTaux:'',preavisBase:'dernier'},o,{id:null}); push(); render(); renderSaved(); ioMsg('Fiche importée.'); }catch(err){ ioMsg('Fichier non reconnu.'); } };
     rd.readAsText(file); e.target.value='';
   });
 }
@@ -2882,7 +3250,7 @@ function show(v){
 }
 
 let TEST_KO=0;
-{ const d = 'Version V3.1 du 21/11/2026 — recoupement avec le simulateur officiel du '+CROISEMENT.date+' ('+CROISEMENT.version+') — '+TESTS.length+' cas de test';
+{ const d = 'Version V3.5 du 21/11/2026 — recoupement avec le simulateur officiel du '+CROISEMENT.date+' ('+CROISEMENT.version+') — '+TESTS.length+' cas de test';
   $('ver').title=d; $('foot-ver').textContent=d; }
 $('opt-tests').checked = loadTestsPref();
 $('opt-tests').addEventListener('change',()=>{ try{ localStorage.setItem('ind-tests',$('opt-tests').checked?'1':'0'); }catch(e){} testsOpt($('opt-tests').checked, TEST_KO); });
