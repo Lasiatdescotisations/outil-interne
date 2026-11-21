@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calcul d'indemnités de rupture</title>
+<meta name="theme-color" content="#0d6656">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d6656'/%3E%3Cg fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='6' width='14' height='20' rx='2'/%3E%3Cpath d='M12.5 11h7M12.5 16h.01M16 16h.01M19.5 16h.01M12.5 20.5h.01M16 20.5h.01M19.5 20.5h.01'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand-font:'Cinzel','Trajan Pro',Georgia,serif; --brand-ls:.05em;
+  color-scheme: light;
+  --bg:#f5f4f0; --surface:#ffffff; --surface-2:#f0eee9; --surface-3:#e8e6e0;
+  --line:#e2dfd8; --line-2:#d3cfc6;
+  --ink:#17191c; --ink-2:#4f5157; --muted:#878880;
+  --accent:#0d6656; --accent-2:#0a5244; --accent-soft:#e1efeb; --accent-ink:#ffffff;
+  --stop:#c2362b; --stop-soft:#f9e6e3;
+  --warn:#eb6834; --warn-soft:#fcebe2; --info:#2a78d6; --info-soft:#e3eefb;
+  --shadow:0 1px 2px rgba(20,20,10,.05), 0 4px 16px rgba(20,20,10,.05);
+  --r:10px;
+  --sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; /* chiffres alignés par tabulaires, zéro sans point ni barre */
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --bg:#141513; --surface:#1c1d1b; --surface-2:#232421; --surface-3:#2c2d2a;
+    --line:#30312d; --line-2:#3c3d38;
+    --ink:#efeee9; --ink-2:#c1c0b7; --muted:#8d8c84;
+    --accent:#2fa58c; --accent-2:#3bb99e; --accent-soft:#18332d; --accent-ink:#0b1210;
+    --stop:#e0574b; --stop-soft:#3a1d1a;
+    --warn:#d95926; --warn-soft:#3a2418; --info:#3987e5; --info-soft:#1a2a3d;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+}
+*{box-sizing:border-box}
+.sw{display:flex;flex-wrap:wrap;gap:10px;max-width:330px}
+.sw button{width:28px;height:28px;border-radius:50%;border:0;padding:0;cursor:pointer;box-shadow:inset 0 0 0 2px var(--surface)}
+.sw button[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:2px}
+.prow{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.prow .pl{max-width:420px}.prow .pl b{display:block;font-weight:600;font-size:14.5px}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:10px}
+[hidden]{display:none !important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+input,select,textarea{background:var(--surface);border:1px solid var(--line-2);border-radius:7px;padding:7px 9px;outline:none;min-width:0;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);padding:0;margin:0;vertical-align:middle;box-shadow:none}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.top{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:18px;padding:0 20px;height:56px}
+.brand{display:flex;align-items:center;gap:9px;white-space:nowrap}
+.brand .txt{font-family:var(--brand-font);font-weight:600;letter-spacing:var(--brand-ls);font-size:17px}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink)}
+.nav{display:flex;gap:2px;height:100%}
+.nav button{display:flex;align-items:center;padding:0 13px;background:none;border:0;color:var(--ink-2);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.nav button:hover{color:var(--ink)}
+.nav button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.nav button[hidden]{display:none}
+.nav .count{margin-left:6px;font-size:11px;font-family:var(--mono);background:var(--accent-soft);color:var(--ink);border-radius:20px;padding:1px 7px}
+.nav .count.ko{background:var(--stop-soft)}
+.top-right{margin-left:auto;font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+
+.wrap{max-width:1240px;margin:0 auto;padding:20px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:18px;align-items:start}
+.col{display:grid;gap:14px}
+.sticky{position:sticky;top:76px;display:grid;gap:14px}
+@media (max-width:980px){.grid{grid-template-columns:1fr}.sticky{position:static}}
+@media (max-width:700px){.top{padding:0 12px;gap:10px}.brand .txt{display:none}.top-right{display:none}.wrap{padding:12px}}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
+.card h2{margin:0 0 12px;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.card h2 .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:11px;font-family:var(--mono)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row.three{grid-template-columns:1fr 1fr 1fr}
+.row.one{grid-template-columns:1fr}
+.row + .row{margin-top:12px}
+@media (max-width:620px){.row,.row.three{grid-template-columns:1fr}}
+label.f{display:block;font-size:12px;color:var(--ink-2);font-weight:500}
+label.f>span{display:block;margin-bottom:4px}
+.pdfp{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--surface-2,var(--surface))}
+.pdfp-h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.pdfp-pre{display:flex;gap:6px}
+.pdfp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 14px;margin-bottom:10px}
+.pdfp-grid label{display:flex;gap:7px;align-items:flex-start;font-size:13px;cursor:pointer;padding:3px 0}
+.pdfp-grid input{margin-top:3px;accent-color:var(--accent)}
+.pdfp-grid label.off{color:var(--muted)}
+.pdfp-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:10px}
+.hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+.btn{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:500}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{background:var(--accent-2)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn.ghost{border-color:transparent;background:none;color:var(--ink-2)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar select{width:auto;min-width:200px;flex:1}
+.msg{font-size:12px;color:var(--ink-2)}
+
+/* Ancienneté façon feuille */
+.anc{display:flex;align-items:baseline;gap:8px;margin-top:12px;padding:10px 12px;background:var(--surface-2);border-radius:8px;font-size:13px}
+.anc b{font-family:var(--mono);font-size:17px;color:var(--accent)}
+
+/* Absences */
+.abs{display:grid;grid-template-columns:1fr 90px auto auto;gap:8px;align-items:center;margin-bottom:8px}
+@media (max-width:520px){.abs{grid-template-columns:1fr 70px auto}.abs .badge{display:none}}
+.badge{font-size:11px;font-weight:600;border-radius:20px;padding:2px 9px;white-space:nowrap}
+.qh{display:inline-grid;place-items:center;width:16px;height:16px;margin-left:6px;padding:0;border-radius:50%;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);font:600 10px/1 var(--sans,inherit);cursor:pointer;vertical-align:middle}.qh:hover,.qh[aria-expanded=true]{background:var(--accent);color:#fff}.qh-pop{font-size:12px;line-height:1.45;color:var(--ink,inherit);background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:6px;padding:7px 10px;margin:4px 0 6px;font-weight:400;text-transform:none;letter-spacing:0}.qh-pop[hidden]{display:none}.no-aide .qh,.no-aide .qh-pop{display:none!important}
+.fold>summary{cursor:pointer;list-style:none}.fold>summary::-webkit-details-marker{display:none}.fold>summary h2{margin:0}.fold>summary h2::before{content:'▸';font-size:11px}.fold[open]>summary h2::before{content:'▾'}.fold[open]>summary h2{margin-bottom:12px}.lb-toc{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.lb-toc a{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);text-decoration:none}.lb-tools{margin:8px 0}.lbc{border-top:1px solid var(--line,#ddd);padding:8px 0}.lbc>summary{cursor:pointer;font-weight:600;font-size:14px}
+.lb a,.hv a{color:var(--accent);text-decoration:underline}
+.lb h3{margin:18px 0 6px;font-size:15px}.lb h4{margin:12px 0 4px;font-size:13px}.lb p,.lb li{font-size:13px;line-height:1.55}.lb table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12.5px}.lb th,.lb td{border:1px solid var(--line,#ddd);padding:5px 8px;text-align:left;vertical-align:top}.lb .plus{background:var(--accent-soft);border-radius:8px;padding:8px 10px}.hv{border-bottom:1px solid var(--line,#ddd);padding:6px 0}.hv summary{cursor:pointer;font-size:13px}.hv ul{margin:6px 0 4px 18px;font-size:12.5px}
+.prof{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:flex-start;margin:0 0 10px;padding:0 18px;max-width:100%}.prof .badge{flex:0 0 auto}.prof .hint{flex:1 1 220px;min-width:0;margin-top:0;overflow-wrap:anywhere}
+.badge.compte{background:var(--accent-soft);color:var(--accent)}
+.badge.exclu{background:var(--warn-soft);color:var(--warn)}
+.badge.moitie,.badge.plafond{background:var(--info-soft);color:var(--info)}
+.badge.prov{background:var(--warn-soft);color:var(--warn)}
+.badge.ok{background:var(--accent-soft);color:var(--accent)}
+
+/* 12 mois */
+.mtable{width:100%;border-collapse:collapse;font-size:13px}
+.mtable th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:left;padding:4px 4px;font-weight:600}
+.mtable td{padding:3px 4px;vertical-align:middle}
+.mtable td.lab{white-space:nowrap;text-transform:capitalize;color:var(--ink-2);font-size:12.5px}
+.mtable td.tot{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:8px}
+.mtable input{padding:5px 7px}
+.mtable input.txt{min-width:70px}
+.mtable tr.off td{opacity:.55}
+.avgs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.avgs div{background:var(--surface-2);border-radius:8px;padding:9px 11px;font-size:12px;color:var(--ink-2)}
+.avgs b{display:block;font-family:var(--mono);font-size:15px;color:var(--ink)}
+.mscroll{overflow-x:auto}
+
+/* Résultat */
+.result{padding:0;overflow:hidden}
+.res-top{padding:18px 18px 14px;background:linear-gradient(180deg,var(--accent-soft),transparent)}
+.res-lab{font-size:12px;color:var(--ink-2);font-weight:500}
+.res-big{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:34px;font-weight:600;letter-spacing:-.02em;color:var(--accent);margin:2px 0}
+.res-sub{font-size:12.5px;color:var(--ink-2)}
+.cmp{display:grid;gap:8px;padding:0 18px 14px}
+.cmp .c{display:grid;grid-template-columns:1fr auto;gap:2px 10px;border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.cmp .c.win{border-color:var(--accent);background:var(--accent-soft)}
+.cmp .c b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.cmp .c small{grid-column:1/-1;color:var(--muted);font-size:11.5px}
+.sec{border-top:1px solid var(--line);padding:14px 18px}
+.sec h3{margin:0 0 8px;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.steps{margin:0;padding-left:18px;display:grid;gap:6px;font-size:13px}
+.steps li::marker{color:var(--muted);font-family:var(--mono);font-size:11px}
+.kvl{display:grid;gap:5px;font-size:13px}
+.kvl div{display:flex;justify-content:space-between;gap:12px}
+.kvl div b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.kvl .tot{border-top:1px solid var(--line);padding-top:6px;margin-top:2px;font-weight:600}
+.formula{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:6px 8px;word-break:break-all;margin-top:6px}
+.alerts{display:grid;gap:6px}
+.alert{background:var(--warn-soft);border-radius:8px;padding:8px 10px;font-size:12.5px}
+.alert.neutral{background:var(--surface-2)}
+.err{background:var(--stop-soft);color:var(--stop);border-radius:8px;padding:12px 14px;font-weight:500;margin:18px}
+.copybox{width:100%;margin-top:8px;font-family:var(--mono);font-size:11.5px;min-height:120px}
+.seg{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 10px}
+.seg button{border:1px solid var(--line-2);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:500}
+.seg button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink,#fff)}
+.cal-opts{display:grid;gap:6px;margin:10px 0 4px;font-size:12.5px}
+.cal-opts label.chk{display:flex;gap:7px;align-items:flex-start;cursor:pointer}
+.cal-opts input[type=checkbox]{margin-top:2px;accent-color:var(--accent)}
+.cal-opts .inl{display:flex;flex-wrap:wrap;gap:6px 14px}
+.cal-opts .inl label{display:inline-flex;gap:6px;align-items:center}
+.cal-opts .inl input{width:46px;text-align:center;padding:4px 6px}
+.cal-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.calsteps{list-style:none;margin:10px 0 0;padding:0}
+.calsteps li{display:grid;grid-template-columns:1fr auto;gap:1px 12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.calsteps li b{font-family:var(--mono);font-weight:500;text-align:right}
+.calsteps li.key{font-weight:600}.calsteps li.key b{font-weight:600}
+.calsteps li.last{color:var(--accent);border-bottom:0}
+.calsteps li .sb{grid-column:1/-1;font-size:11.5px;color:var(--muted);font-weight:400}
+.cal-act{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cal-note{font-size:11.5px;color:var(--muted);margin-top:10px}
+.cal{display:grid;gap:6px;font-size:13px}
+.cal div{display:flex;justify-content:space-between;gap:10px}
+.cal b{font-family:var(--mono)}
+.cal .last{border-top:1px solid var(--line);padding-top:6px;margin-top:2px;font-weight:600;color:var(--accent)}
+
+
+/* Menu des règles */
+.sr{position:absolute;left:-9999px}
+.rules-layout{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+.rules-menu{position:sticky;top:64px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 84px)}
+.rsearch input{width:100%}
+.rfilters{display:flex;flex-wrap:wrap;gap:5px}
+.rfilters button{font:inherit;font-size:11.5px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink-2);border-radius:20px;padding:3px 9px;cursor:pointer}
+.rfilters button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.rlist{overflow:auto;display:flex;flex-direction:column;gap:2px;margin:0 -4px;padding:0 4px}
+.rm-item{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center;text-align:left;font:inherit;background:transparent;border:1px solid transparent;border-radius:8px;padding:7px 8px;color:var(--ink);cursor:pointer}
+.rm-item:hover{background:var(--surface-2)}
+.rm-item.on{background:var(--accent-soft);border-color:var(--accent)}
+.rm-item .rk{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right}
+.rm-item b{display:block;font-size:13px;font-weight:600;line-height:1.25}
+.rm-item i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;border:2px solid transparent}
+.dot.modelisee{background:var(--accent)}
+.dot.partielle{background:var(--info)}
+.dot.legal{background:var(--warn)}
+.dot.socle{background:var(--ink-2)}
+.dot.val{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+.rlegend{font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.rlegend span{display:inline-flex;align-items:center;gap:5px}
+.rempty{padding:14px 6px;color:var(--muted);font-size:13px}
+.badge.info{background:var(--info-soft);color:var(--info)}
+.tier{font-size:10.5px;font-weight:600;border-radius:20px;padding:1px 8px;margin-right:6px;white-space:nowrap;display:inline-block}
+.tier.n1{background:var(--accent-soft);color:var(--accent)}
+.tier.n2{background:var(--info-soft);color:var(--info)}
+.tier.n3{background:var(--warn-soft);color:var(--warn)}
+.cx{margin-top:12px;font-size:12.5px;border:1px solid var(--line,#d8dcdc);border-radius:10px;padding:10px 12px}
+.cx p{margin:6px 0 0}
+.cx ul{margin:6px 0 0;padding-left:18px}
+.pol summary{cursor:pointer;font-weight:600}
+.pol table{border-collapse:collapse;margin:8px 0;font-size:12.5px;width:100%}
+.pol td,.pol th{border-bottom:1px solid var(--line,#d8dcdc);padding:5px 8px;text-align:left;vertical-align:top}
+.pol ul{margin:6px 0;padding-left:18px;font-size:12.5px}
+
+@media (max-width:860px){.rules-layout{grid-template-columns:1fr}.rules-menu{position:static;max-height:none}.rlist{max-height:240px}}
+
+/* Règles */
+.rule-card h3{margin:0 0 4px;font-size:16px}
+.rule-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.rule-head .sp{margin-left:auto}
+table.kv{width:100%;border-collapse:collapse;font-size:13px}
+table.kv td{padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
+table.kv td:first-child{color:var(--ink-2);width:36%}
+ul.plain{margin:6px 0 0;padding-left:18px;font-size:12.5px;color:var(--ink-2)}
+.src a{color:var(--accent)}
+
+table.tests{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tests th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line-2)}
+table.tests td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.tests td.r{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pass{color:var(--accent);font-weight:700}.fail{color:var(--stop);font-weight:700}
+.tests-wrap{overflow-x:auto}
+
+.sil{border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:12px;background:var(--surface-2)}
+.sil h3{margin:0 0 6px;font-size:14px}
+.sil .meta{font-size:12px;color:var(--ink-2);margin-bottom:8px}
+.sil .ok{color:var(--accent);font-weight:600}.sil .ko{color:var(--warn);font-weight:600}
+.stbl{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
+.stbl th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:left;padding:4px;font-weight:600}
+.stbl td{padding:4px;border-top:1px solid var(--line);vertical-align:middle}
+.stbl td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
+.stbl tr.need td{background:var(--warn-soft)}
+.stbl select{padding:4px 6px;font-size:12px;max-width:230px}
+.stbl .why{display:block;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16.5h.01M12 16.5h.01M15 16.5h.01"/></svg></span>
+    <span class="txt">Indemnités</span>
+  </div>
+  <nav class="nav" id="nav">
+    <button data-view="fiche" class="on">Fiche</button>
+    <button data-view="regles">Règles</button>
+    <button data-view="params">Paramètres</button>
+    <button data-view="auteur" id="nav-auteur" hidden>Auteur</button>
+    <button data-view="tests" id="nav-tests" hidden>Tests <span class="count" id="tcount">…</span></button>
+  </nav>
+  <div class="top-right" id="ver" title="">__APP_VERSION__ · __APP_DATE__ · règles à valider</div>
+</header>
+
+<main class="wrap">
+
+<!-- ============ FICHE ============ -->
+<section class="view" id="v-fiche">
+ <div class="grid">
+  <div class="col">
+
+   <div class="card">
+     <div class="bar">
+       <select id="saved" aria-label="Fiches enregistrées"></select>
+       <button class="btn" id="b-new" type="button">Nouvelle</button>
+       <button class="btn primary" id="b-save" type="button">Enregistrer</button>
+       <button class="btn ghost" id="b-del" type="button">Supprimer</button>
+     </div>
+     <div class="bar" style="margin-top:10px">
+       <button class="btn" id="b-xlsx" type="button">Exporter en Excel (.xlsx)</button>
+       <button class="btn" id="b-pdf" type="button" aria-expanded="false" aria-controls="pdf-panel">Exporter en PDF ou image…</button>
+       <button class="btn" id="b-json" type="button">Exporter la fiche (.json)</button>
+       <label class="btn" style="cursor:pointer">Importer (.json)<input type="file" id="b-import" accept=".json,application/json" hidden></label>
+       <span class="msg" id="io-msg"></span>
+     </div>
+     <div class="pdfp" id="pdf-panel" hidden>
+       <div class="pdfp-h"><b>Contenu de l'export (PDF ou image)</b>
+         <span class="pdfp-pre"><button class="btn ghost sm" id="pdf-client" type="button">Version client</button><button class="btn ghost sm" id="pdf-full" type="button">Fiche complète</button></span></div>
+       <div class="pdfp-grid" id="pdf-blocs"></div>
+       <div class="pdfp-fields">
+         <label class="f"><span>Style du document</span><select id="pdf-style"><option value="site">Design de l'outil (couleur)</option><option value="neutre">Neutre (noir et blanc, pour impression)</option></select></label>
+         <label class="f"><span>Titre (facultatif)</span><input id="pdf-titre" placeholder="Calcul d'indemnité - Nom Prénom"></label>
+         <label class="f"><span>En-tête (cabinet, facultatif)</span><input id="pdf-entete" placeholder="Nom du cabinet"></label>
+         <label class="f"><span>Mention de bas de page</span><input id="pdf-note"></label>
+       </div>
+       <div class="bar"><button class="btn primary" id="pdf-go" type="button">Générer le PDF</button><button class="btn primary" id="img-go" type="button">Générer l'image (PNG)</button><button class="btn" id="img-copy" type="button">Copier l'image</button><button class="btn ghost" id="pdf-close" type="button">Fermer</button><span class="msg" id="pdf-msg"></span></div>
+       <div class="hint">L'image reprend la même mise en page que le PDF, en une seule page continue (idéale pour un message ou un tableur). Les cases cochées sont mémorisées dans ce navigateur. « Version client » masque les détails internes (calcul, rémunération, points d'attention, règles).</div>
+     </div>
+     <div class="hint">Les fiches sont enregistrées dans ce navigateur seulement : exportez-les pour les conserver ou les changer d'appareil.</div>
+   </div>
+
+   <div class="card">
+     <h2><span class="n">1</span>Salarié et convention</h2>
+     <div class="f ccn-box">
+       <span>Convention collective <span class="hint">(tapez le nom, un mot-clé ou le numéro IDCC)</span></span>
+       <input id="ccn" type="hidden">
+       <input id="ccn-q" list="ccn-dl" autocomplete="off" placeholder="Rechercher une convention : syntec, 1486, bâtiment, coiffure…" aria-label="Convention collective">
+       <datalist id="ccn-dl"></datalist>
+       <div class="hint" id="ccn-info"></div>
+       <button class="btn ghost sm" id="b-rules" type="button" style="margin-top:6px;align-self:flex-start">Voir les règles de cette convention →</button>
+     </div>
+     <div class="row three">
+       <label class="f"><span>Nom</span><input id="nom" autocomplete="off"></label>
+       <label class="f"><span>Prénom</span><input id="prenom" autocomplete="off"></label>
+       <label class="f"><span>Emploi</span><input id="emploi" autocomplete="off"></label>
+     </div>
+     <div class="row three">
+       <label class="f"><span>Classification</span><input id="classif" autocomplete="off"></label>
+       <label class="f"><span>Statut</span><input id="statut" list="statuts" autocomplete="off"><datalist id="statuts"><option>Ouvrier</option><option>Employé</option><option>Agent de maîtrise</option><option>Cadre</option><option>Cadre au forfait</option></datalist></label>
+       <label class="f" id="w-cat" hidden><span>Catégorie</span><select id="categorie"></select></label>
+     </div>
+     <div class="row">
+       <label class="f"><span>Motif de rupture</span><select id="motif"></select></label>
+     </div>
+      <div class="row three">
+       <label class="f"><span>Date de naissance</span><input type="date" id="naissance"></label>
+       <label class="f"><span>Âge calculé à la date de</span><select id="ageRef"><option value="sortie">fin de contrat (rupture)</option><option value="dateRef">signature / notification</option></select></label>
+       <label class="f"><span>Âge (si naissance inconnue)</span><input type="number" id="age" min="14" max="90" inputmode="numeric" placeholder="ex. 52"></label>
+     </div>
+     <div class="hint" id="age-info"></div>
+   </div>
+
+   <div class="card">
+     <h2><span class="n">2</span>Dates et ancienneté</h2>
+     <div class="row three">
+       <label class="f"><span>Entrée le</span><input type="date" id="entree"></label>
+       <label class="f"><span>Sortie le</span><input type="date" id="sortie"></label>
+       <label class="f"><span id="ref-lab">Date de signature</span><input type="date" id="dateRef"><div class="hint" id="ref-hint">Les 12 mois de référence sont ceux qui précèdent le mois de cette date.</div></label>
+     </div>
+     <div class="anc" id="anc"></div>
+   </div>
+
+   <div class="card">
+     <h2><span class="n">3</span>Absences à examiner pour l'ancienneté</h2>
+     <div id="abs-list"></div>
+     <button class="btn sm" id="abs-add" type="button">+ Ajouter une absence</button>
+     <div class="hint" style="margin-top:8px">Traitement du Code du travail, sauf règle propre à la convention (voir l'onglet Règles). Durées en jours calendaires.</div>
+   </div>
+
+   <div class="card">
+     <h2><span class="n">4</span>Rémunération des 12 derniers mois</h2>
+     <div class="mscroll"><table class="mtable"><thead><tr><th>Mois</th><th>Brut</th><th>Reconstitué</th><th style="text-align:right">Total</th><th>Libellé</th><th title="Inclure dans la moyenne">Moy.</th></tr></thead><tbody id="mbody"></tbody></table></div>
+     <div class="avgs"><div>Moyenne 12 mois<b id="avg12">—</b><span id="avg12n"></span></div><div>Moyenne 3 mois<b id="avg3">—</b></div></div>
+     <div class="bar" style="margin-top:10px">
+       <label class="btn sm" style="cursor:pointer">Importer une fiche Silae (.xls / .xlsx)<input type="file" id="silae-file" accept=".xls,.xlsx,.xlsm" hidden></label>
+       <span class="hint" id="silae-msg" style="margin:0"></span>
+     </div>
+     <div id="silae-panel" hidden></div>
+     <div class="bar" style="margin-top:10px">
+       <input type="number" id="fill-val" step="0.01" placeholder="Montant brut mensuel" style="max-width:190px" inputmode="decimal" autocomplete="off" value="">
+       <button class="btn sm" id="fill-btn" type="button">Remplir les 12 mois</button>
+     </div>
+     <div class="hint">« Reconstitué » : sommes à réintégrer (IJSS, maintien, absence non rémunérée…). Décochez « Moy. » pour écarter un mois (mois d'entrée partiel par exemple). Les primes annuelles ou exceptionnelles se proratisent dans la colonne Reconstitué.</div>
+   </div>
+
+   <div class="card">
+     <h2><span class="n">5</span>Négociation et coûts</h2>
+     <div class="row three">
+       <label class="f"><span>Indemnité supra-légale (€)</span><input type="number" id="supra" min="0" step="0.01" inputmode="decimal"></label>
+       <label class="f"><span>Contribution patronale (%)</span><input type="number" id="taux" min="0" max="100" step="1" inputmode="decimal" placeholder="auto"><div class="hint" id="taux-hint">Rupture conventionnelle et mise à la retraite.</div></label>
+       <label class="f"><span>Honoraires (€)</span><input type="number" id="honoraires" min="0" step="0.01" inputmode="decimal"><div class="hint" id="hono-hint"></div></label>
+     </div>
+     <div class="row">
+       <label class="f"><span>Arrondi de l'indemnité retenue</span><select id="arrondi"><option value="">Automatique (RC : dizaine supérieure ; sinon euro supérieur)</option><option value="dizaine">Dizaine d'euros supérieure</option><option value="euro">Euro supérieur</option><option value="aucun">Aucun (centimes)</option></select></label>
+       <label class="f"><span>Remarque sur la convention</span><input id="remCcn" placeholder="ex. CCN très inférieur au légal"></label>
+     </div>
+     <div id="w-csp" hidden style="border:1px solid var(--line);border-radius:10px;padding:12px;margin:4px 0 12px;background:var(--surface-2,var(--surface))">
+       <div class="row one"><label class="chk"><input type="checkbox" id="csp"><span><b>Le salarié accepte le contrat de sécurisation professionnelle (CSP)</b> : pas de préavis ; l'indemnité de préavis équivalente est versée à France Travail (3 mois maximum) si le salarié a au moins 1 an d'ancienneté.</span></label></div>
+       <div id="w-csp-f" hidden>
+         <div class="row three">
+           <label class="f"><span>Durée du préavis (mois)</span><input type="number" id="preavisMois" min="0" max="12" step="0.5" inputmode="decimal" placeholder="auto : minimum légal"><div class="hint">Préavis qui aurait été dû sans CSP (loi, convention, contrat).</div></label>
+           <label class="f"><span>Base mensuelle du préavis</span><select id="preavisBase"><option value="dernier">Dernier salaire mensuel (rémunération qui aurait été perçue)</option><option value="sr">Salaire de référence de l'indemnité (plus favorable moy. 12 / 3 mois)</option></select><input type="number" id="preavisSal" min="0" step="0.01" inputmode="decimal" placeholder="ou montant saisi (€)" style="margin-top:6px"></label>
+           <label class="f"><span>Charges à ajouter (patronales + salariales, %)</span><input type="number" id="cspTaux" min="0" max="200" step="0.1" inputmode="decimal" placeholder="ex. 60"></label>
+         </div>
+         <div class="row one"><label class="f"><span>Montant chargé calculé par la paie (€, facultatif)</span><input type="number" id="cspMontant" min="0" step="0.01" inputmode="decimal"><div class="hint">S'il est renseigné, il remplace l'estimation au taux de charges. Contribution à régler à France Travail, pas à l'Urssaf.</div></label></div>
+       </div>
+     </div>
+     <div class="row">
+       <label class="f"><span>Rémunération brute de l'année civile précédente (€)</span><input type="number" id="remN1" min="0" step="0.01" inputmode="decimal"><div class="hint">Année civile qui précède la rupture. Nécessaire au régime social et fiscal (seuil « 2 fois la rémunération »).</div></label>
+       <div class="f" id="w-droit" hidden><label class="chk"><input type="checkbox" id="droitRetraite"><span>Salarié en droit de bénéficier d'une pension de retraite (indemnité imposable en totalité)</span></label></div>
+     </div>
+     <div class="row one"><label class="f"><span>Remarque sur les absences</span><input id="remAbs" placeholder="ex. Les mois de maladie/AT ne sont pas déduits"></label></div>
+     <div class="row one"><label class="f"><span>Calcul établi par</span><input id="auteur" autocomplete="off" placeholder="Nom ou initiales (voir Paramètres)"></label></div>
+     <div class="row one"><label class="f"><span>Notes et remarques sur le dossier</span><textarea id="notes" rows="4" placeholder="Hypothèses retenues, échanges avec le salarié ou l'employeur, points à vérifier…"></textarea><div class="hint">Enregistrées avec la fiche. Vous pouvez les inclure ou non dans l'export PDF ou image.</div></label></div>
+   </div>
+  </div>
+
+  <aside class="sticky">
+   <div class="card result" id="result"></div>
+   <div class="card" id="proc-card" hidden>
+     <h2 id="proc-h">Calendrier de la procédure</h2>
+     <div id="proc-in"></div>
+     <div id="proc-out"></div>
+   </div>
+   <div class="card" id="cal-card" hidden>
+     <h2>Calendrier de la rupture conventionnelle</h2>
+     <div class="seg" id="cal-seg" role="group" aria-label="Date de départ du calendrier"></div>
+     <div id="cal-in"></div>
+     <div class="cal-opts" id="cal-opts"></div>
+     <div id="cal-out"></div>
+   </div>
+  </aside>
+ </div>
+</section>
+
+<!-- ============ PARAMÈTRES ============ -->
+<section class="view" id="v-params" hidden>
+ <div style="max-width:860px;margin:0 auto;display:grid;gap:14px">
+  <div class="card">
+    <h2>Exemple pour essayer l'outil</h2>
+    <div class="prow"><div class="pl"><b>Générer un test</b><div class="hint">Remplit la fiche avec un cas tiré au hasard et plausible (salarié fictif, convention courante, ancienneté et salaires réalistes). Utile pour découvrir l'outil ou vérifier un résultat. La fiche en cours est remplacée.</div></div>
+    <button class="btn" type="button" id="b-gen">Générer un test</button></div>
+    <div class="hint" id="gen-msg" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <h2>Affichage</h2>
+    <div class="prow">
+      <div class="pl"><b>Couleur de l'application</b><div class="hint" id="sw-lab"></div></div>
+      <div class="sw" id="sw" role="group" aria-label="Couleur de l'application"></div>
+    </div>
+    <div class="prow" style="margin-top:14px">
+      <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="opt-aide" style="width:auto"> Afficher les bulles d'aide (?) sur la fiche</label>
+    </div>
+    <div class="prow" style="margin-top:14px">
+      <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="opt-tests" style="width:auto"> Afficher l'onglet Tests (cas chiffrés)</label>
+    </div>
+    <div class="hint" style="margin-top:8px">Ces réglages sont mémorisés dans ce navigateur. La couleur choisie est aussi utilisée dans les exports PDF et image « Design de l'outil ».</div>
+  </div>
+  <div class="card">
+    <h2>Auteur des calculs</h2>
+    <label class="f"><span>Nom ou initiales</span><input id="p-auteur" autocomplete="off" placeholder="ex. M. Dupont ou MD"></label>
+    <div class="hint">Reporté automatiquement dans chaque nouvelle fiche (« Calcul établi par »), modifiable sur la fiche. Peut être affiché ou masqué à l'export.</div>
+  </div>
+  <div class="card">
+    <h2>Licenciement économique : CSP</h2>
+    <label class="f"><span>Taux de charges à ajouter au préavis (patronales + salariales, % du brut)</span><input type="number" id="p-csptaux" min="0" max="200" step="0.1" inputmode="decimal" placeholder="ex. 60"></label>
+    <div class="hint">Sert à estimer la contribution « chargée » à verser à France Travail. Le montant exact se récupère dans votre logiciel de paie (champ facultatif de la fiche).</div>
+  </div>
+  <div class="card">
+    <h2>Honoraires par défaut</h2>
+    <div class="hint">Montant proposé automatiquement selon la nature de la sortie. Il reste modifiable sur chaque fiche ; laissez vide pour ne rien proposer.</div>
+    <div class="hgrid" id="hgrid"></div>
+  </div>
+  <div class="card" id="don-card">
+    <h2>Soutenir le projet</h2>
+    <div class="hint">L'outil est gratuit et libre. S'il vous est utile, un soutien volontaire aide à relire les textes des conventions, à en ajouter de nouvelles et à couvrir les frais de fonctionnement. Aucune obligation, et aucun avantage sur les calculs : tout le monde a accès à la même version.</div>
+    <div style="margin-top:10px"><a class="btn" href="https://fr.tipeee.com/calcul-indemnites/" target="_blank" rel="noopener">Soutenir sur Tipeee</a></div>
+  </div>
+  <div class="card" id="rm-card">
+    <h2>Contacter l'auteur</h2>
+    <div class="hint">Un problème, un doute sur une convention, une idée ? Votre message est privé : il n'est lu que par l'auteur. Aucun compte à créer. N'indiquez aucune donnée personnelle (nom, salaire ou dates d'un salarié réel).</div>
+    <div class="row" style="margin-top:10px"><label class="f"><span>Nature du message</span><select id="rm-type"><option value="probleme">Un problème</option><option value="idee">Une idée</option><option value="question">Une question</option></select></label>
+    <label class="f"><span>Votre adresse (facultatif, pour recevoir une réponse)</span><input id="rm-contact" type="email" autocomplete="off" maxlength="200"></label></div>
+    <label class="f" style="margin-top:8px"><span>Votre message</span><textarea id="rm-msg" rows="5" maxlength="2000"></textarea></label>
+    <input id="rm-hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+    <label style="display:flex;gap:6px;align-items:center;cursor:pointer;margin-top:10px"><input type="checkbox" id="rm-join" style="width:auto"> Joindre la fiche calculée, anonymisée (vous choisissez ce qui est envoyé)</label>
+    <div id="rm-blocs" hidden style="display:grid;gap:4px;margin:8px 0 0 22px"></div>
+    <textarea id="rm-prev" class="copybox" readonly hidden style="margin-top:8px;min-height:120px" aria-label="Aperçu de ce qui sera envoyé"></textarea>
+    <div class="bar" style="margin-top:10px"><button class="btn primary" type="button" id="rm-send">Envoyer</button><span class="hint" id="rm-status" style="margin:0"></span></div>
+    <div class="hint" style="margin-top:8px">Vous préférez un échange public ? <a href="https://github.com/Lasiatdescotisations/outil-interne/issues/new" target="_blank" rel="noopener">Ouvrir un signalement sur GitHub</a> (compte GitHub nécessaire).</div>
+  </div>
+  <details class="card fold" id="histo-card">
+    <summary><h2>Historique des mises à jour</h2></summary>
+    <div id="histo"></div>
+  </details>
+  <details class="card fold" id="lb-card">
+    <summary><h2>Livre blanc</h2></summary>
+    <div class="hint" id="lb-ver"></div>
+    <div class="lb-tools"><button type="button" class="btn" id="lb-open">Tout déplier</button> <button type="button" class="btn" id="lb-close">Tout replier</button></div>
+    <nav id="lb-toc" class="lb-toc" aria-label="Chapitres du livre blanc"></nav>
+    <div id="lb" class="lb"></div>
+  </details>
+ </div>
+</section>
+
+<!-- ============ RÈGLES ============ -->
+<section class="view" id="v-regles" hidden>
+  <div class="card" style="margin-bottom:14px">
+    <b>Règles utilisées par le calcul.</b> Choisissez une convention dans le menu : chaque fiche indique son barème, ses points ambigus, ses sources (classées par niveau de fiabilité) et le résultat du <b>recoupement avec le simulateur officiel du Code du travail numérique</b>. Les règles conventionnelles restent <b>provisoires</b> tant que vous ne les avez pas confrontées au texte de la convention (marquage « validée » conservé dans ce navigateur uniquement).
+    <details class="pol" style="margin-top:10px"><summary>Politique de sources et ressources publiques fiables</summary>
+      <table><thead><tr><th>Niveau</th><th>Sources</th><th>Usage</th></tr></thead><tbody>
+       <tr><td><span class="tier n1">Officiel</span></td><td>Légifrance (textes de convention issus de la base KALI et du BOCC, Code du travail), Code du travail numérique, BOSS, service-public.fr, justice.fr, France Travail, TéléRC</td><td>Fait foi. Toute règle doit pouvoir y être rattachée.</td></tr>
+       <tr><td><span class="tier n2">Branche / synthèse</span></td><td>Sites des fédérations de la branche (ex. Syntec), LégiSocial (synthèses rédigées à partir de KALI, JORF et BOCC)</td><td>Pour repérer l'article et lire la pratique ; à recouper avec le niveau officiel avant de valider.</td></tr>
+       <tr><td><span class="tier n3">À remplacer</span></td><td>Autres sites de paie et de conseil (fiche-paie.fr, PayFit, Altis, advizexperts, Tissot…)</td><td>Provisoire seulement ; à remplacer par une source des niveaux précédents.</td></tr>
+      </tbody></table>
+      <b style="font-size:12.5px">Pour aller plus loin</b>
+      <ul>
+       <li>Texte intégral des conventions : <a href="https://www.data.gouv.fr/datasets/kali-conventions-collectives-nationales" target="_blank" rel="noopener">base KALI en open data (DILA)</a> et <a href="https://www.data.gouv.fr/datasets/bocc-bulletin-officiel-des-conventions-collectives" target="_blank" rel="noopener">Bulletin officiel des conventions collectives</a>.</li>
+       <li>Accès programmable aux textes officiels : <a href="https://www.data.gouv.fr/dataservices/legifrance/" target="_blank" rel="noopener">API Légifrance via PISTE</a> (gratuite après inscription) ; <a href="https://github.com/SocialGouv/kali-data" target="_blank" rel="noopener">kali-data</a> propose un export JSON régulier des conventions.</li>
+       <li>Recoupement des barèmes : simulateurs du <a href="https://code.travail.gouv.fr/outils" target="_blank" rel="noopener">Code du travail numérique</a> (licenciement, rupture conventionnelle, retraite) ; leurs règles sont publiées (paquet <code>@socialgouv/modeles-social</code>).</li>
+       <li>Cotisations et contribution patronale sur les indemnités : <a href="https://boss.gouv.fr/" target="_blank" rel="noopener">BOSS</a>, qui précise notamment que le taux de 40 % dépend de la date de fin du contrat.</li>
+      </ul>
+    </details>
+    </div>
+  <div class="rules-layout">
+    <nav class="rules-menu" aria-label="Conventions collectives">
+      <label class="rsearch"><span class="sr">Rechercher une convention</span><input id="rq" type="search" placeholder="Rechercher : IDCC ou nom…" autocomplete="off"></label>
+      <div class="rfilters" id="rfilters" role="group" aria-label="Filtrer"></div>
+      <div class="rlist" id="rlist"></div>
+    </nav>
+    <div class="rules-detail" id="rules" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- ============ TESTS ============ -->
+<section class="view" id="v-auteur" hidden>
+  <div class="card" style="max-width:860px;margin:0 auto"><h2 id="au-h">Espace auteur</h2><div id="au-body"></div></div>
+</section>
+
+<section class="view" id="v-tests" hidden>
+  <div class="card">
+    <h2>Cas de test chiffrés — dont les montants de vos fiches</h2>
+    <div class="tests-wrap"><table class="tests"><thead><tr><th></th><th>Cas</th><th>Calcul</th><th style="text-align:right">Attendu</th><th style="text-align:right">Obtenu</th></tr></thead><tbody id="tests-body"></tbody></table></div>
+  </div>
+</section>
+
+<footer class="foot" style="max-width:1100px;margin:0 auto;padding:6px 16px 28px;color:var(--muted);font-size:12px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center">
+  <span id="foot-ver">Version __APP_VERSION__ du __APP_DATE__</span>
+  <a href="https://fr.tipeee.com/calcul-indemnites/" target="_blank" rel="noopener" style="color:inherit">Soutenir le projet</a>
+  <a href="#auteur" id="foot-auteur" style="color:inherit" hidden>Espace auteur</a>
+</footer>
+</main>
+
+<script>
+/*__ENGINE__*/
+/*__SILAE__*/
+/*__EXPORT__*/
+/*__PDF__*/
+/*__TESTS__*/
+/*__CROISEMENT__*/
+/*__PROFILS__*/
+/*__HISTORIQUE__*/
+/*__AIDE__*/
+/*__RETOURS__*/
+/*__LIVREBLANC__*/
+
+/* ---------- Documentation des règles ---------- */
+const RULES_DOC = [
+ { id:'cdt', titre:'Code du travail (socle légal)', provisoire:false,
+   items:[
+    ['Indemnité légale de licenciement','1/4 de mois de salaire par année jusqu\'à 10 ans, 1/3 au-delà (R1234-2). Années incomplètes proratisées par mois complets.'],
+    ['Condition d\'ancienneté','8 mois (L1234-9), sauf faute grave ou lourde.'],
+    ['Salaire de référence','Le plus favorable de la moyenne des 12 derniers mois et de la moyenne des 3 derniers mois (R1234-4).'],
+    ['Rupture conventionnelle','Indemnité au moins égale à l\'indemnité légale de licenciement (L1237-13). Calcul proratisé sans condition de 8 mois.'],
+    ['Inaptitude non professionnelle','Même indemnité que le licenciement.'],
+    ['Inaptitude professionnelle','Indemnité spéciale : double de l\'indemnité légale (L1226-14).'],
+    ['Mise à la retraite','Au moins l\'indemnité légale de licenciement.'],
+    ['Départ volontaire à la retraite','0,5 mois dès 10 ans, 1 mois dès 15 ans, 1,5 mois dès 20 ans, 2 mois dès 30 ans (D1237-1).'],
+    ['Contribution patronale','40 % pour une fin de contrat à compter du 1er janvier 2026 (30 % avant), sur la fraction exonérée de cotisations ; vos fiches l\'appliquent au total de l\'indemnité.'],
+    ['Arrondi (observé dans vos fiches)','Rupture conventionnelle : dizaine d\'euros supérieure. Licenciement : euro supérieur.'],
+    ['Calendrier de la rupture conventionnelle','Rétractation : 15 jours calendaires (prorogés si samedi, dimanche ou férié) ; envoi le lendemain ; instruction : 15 jours ouvrables ; rupture au plus tôt le lendemain. Contrôlé sur la capture du simulateur officiel jointe à vos fiches.'],
+    ['Absences dans l\'ancienneté','Retenues : congés payés, maternité/paternité/adoption, AT/MP, congé parental à temps partiel, préavis non exécuté à la demande de l\'employeur. Moitié : congé parental à temps plein. Déduites : maladie non professionnelle, accident de trajet, congé sans solde, sabbatique, création d\'entreprise, grève, mise à pied, activité partielle (à confirmer).']
+   ],
+   ambigu:['Activité partielle : traitement variable selon les sources.','Inaptitude professionnelle : condition de 8 mois pour l\'indemnité spéciale à confirmer.','Période de référence du salaire en rupture conventionnelle : mois précédant la signature (lecture de vos fiches), à confirmer.'],
+   sources:[['Légifrance — R1234-2','https://www.legifrance.gouv.fr/codes/id/LEGIARTI000018483188/2026-08-06'],['Justice.fr — ancienneté et indemnité de licenciement','https://www.justice.fr/fiche/calculer-anciennete-salarie-montant-indemnite-licenciement'],['France Travail — contribution patronale à 40 %','https://www.francetravail.org/accueil/actualites/2026/rupture-conventionnelle-en-2026-quelles-nouvelles-regles-et-impacts-pour-employeurs-et-salaries.html?type=article']]
+ },
+ { id:'1090', titre:'Services de l\'automobile — IDCC 1090', provisoire:true,
+   items:[
+    ['Indemnité de licenciement','À partir de 1 an : 2/10 de mois par année ; au-delà de 10 ans : + 2/15 de mois par année au-delà de 10 ans. Comparée au minimum légal.'],
+    ['Salaire de référence','1/12 de la rémunération des 12 derniers mois, ou 1/3 des 3 derniers mois si plus favorable, primes au prorata.'],
+    ['Départ volontaire à la retraite','D\'après vos fiches « IFC » : indemnité conventionnelle = minimum légal (½ mois dès 10 ans, 1 mois dès 15 ans, 1,5 mois dès 20 ans, 2 mois dès 30 ans), sur le plus favorable de la moyenne 12 mois et 3 mois.'],
+    ['Absences dans l\'ancienneté','Retenues : CDD, apprentissage, autres établissements, stages de formation économique/sociale/syndicale, préavis non travaillé, maternité, enfant malade, moitié du congé parental non indemnisé, appel de préparation à la défense, service national, temps partiel annualisé, contrats antérieurs. Maladie, AT et maladie professionnelle : dans la limite de 6 mois (modélisé : 180 jours cumulés de maladie non professionnelle ; AT/MP retenus en totalité par la loi).']
+   ],
+   ambigu:['« Dans la limite de 6 mois » : par période d\'absence ou en cumul ? Le cumul est retenu.','Dans vos fiches, la convention est « très inférieure au légal » : le légal l\'emporte presque toujours.'],
+   sources:[['Code du travail numérique — extraits joints à vos fiches (captures de la feuille « Légal »)','https://code.travail.gouv.fr/']]
+ },
+ { id:'0045', titre:'Caoutchouc — IDCC 0045', provisoire:true,
+   items:[
+    ['Indemnité de licenciement','De 1 à 3 ans : ½ mois ; de 3 à 4 ans : 1 mois ; à partir de 4 ans : 3/10 de mois par année. Calcul au prorata des mois de présence. Lecture de vos fiches : ½ + 1 + 0,3 × (années au-delà de 4 ans).'],
+    ['Salaire de référence','Moyenne des 12 mois (comme dans votre fiche).'],
+    ['Préavis de 3 mois','Alternative « 10 × B / (65 − A) » (niveau V) : non modélisée.']
+   ],
+   ambigu:['Entre 3 et 4 ans : proratisation du mois supplémentaire (lecture retenue : prorata linéaire).','Base de calcul : moyenne 12 mois (fiche) ; la convention ne le précise pas dans l\'extrait.'],
+   sources:[['Code du travail numérique — extraits joints à vos fiches','https://code.travail.gouv.fr/']]
+ },
+ { id:'2420', titre:'Bâtiment — cadres — IDCC 2420', provisoire:true,
+   items:[
+    ['Indemnité de licenciement','3/10 de mois par année d\'ancienneté, à partir de 2 ans révolus et jusqu\'à 10 ans ; 6/10 par année au-delà de 10 ans. Plafond de 15 mois. Majoration de 10 % au-delà de 55 ans.'],
+    ['Rémunération de référence','Dernier mois précédant la notification + 1/12 de la rémunération variable des 12 derniers mois. Votre fiche utilise la moyenne des 12 mois.']
+   ],
+   ambigu:['Base de calcul : moyenne 12 mois (votre fiche) ou rémunération du dernier mois avant notification (convention).','Ancienneté « telle que définie à l\'article 7.13 » : non détaillée dans l\'extrait.'],
+   sources:[['Code du travail numérique — extraits joints à vos fiches','https://code.travail.gouv.fr/']]
+ },
+ { id:'1486', titre:'Syntec — IDCC 1486', provisoire:true,
+   items:[
+    ['Licenciement (art. 4.5)','Dès 8 mois d\'ancienneté ininterrompue (sauf faute grave ou lourde). ETAM : 1/4 de mois par année jusqu\'à 10 ans, 1/3 au-delà. Ingénieurs et cadres : 1/4 de mois par année sous 2 ans d\'ancienneté ; dès 2 ans, 1/3 de mois pour chaque année de présence, sur toute l\'ancienneté. Années incomplètes : prorata des mois de présence. Le plus élevé de la convention et du Code du travail est versé.'],
+    ['Rupture conventionnelle, inaptitude','Même barème que le licenciement (minimum légal et conventionnel).'],
+    ['Salaire de référence','1/12 de la rémunération des 12 derniers mois avant la notification. Primes prévues au contrat incluses ; majorations d\'heures supplémentaires et indemnités de déplacement ou de détachement exclues. Le calcul conventionnel n\'emploie pas la moyenne 3 mois (seul le légal retient le plus favorable).'],
+    ['Départ volontaire à la retraite (art. 4.8)','1 mois à 5 ans révolus, puis 1/5 de mois par année à compter de la 6e année. Même assiette que l\'art. 4.5.'],
+    ['Mise à la retraite (art. 4.6 et 4.8)','Indemnité de l\'art. 4.8, au moins égale à l\'indemnité conventionnelle de licenciement.'],
+    ['Ancienneté (art. 3.7)','Temps passé chez le même employeur, en une ou plusieurs fois. Pris en compte : maladies et accidents si la suspension est inférieure à 6 mois ininterrompus ; maternité et adoption ; congés de formation ; congés payés ou exceptionnels d\'un commun accord ; détachements ; périodes ouvrant droit au maintien de l\'ancienneté selon le Code du travail ; mobilisation et réserve militaire. Contrats antérieurs rompus par démission ou faute grave : déduits sauf décision contraire de l\'employeur.'],
+ ['Plafond, majoration, minoration','Aucun dans les articles 4.5 et 4.8.']
+   ],
+   ambigu:['ETAM : « après 10 ans d\'ancienneté : 1/3 de mois pour chaque année de présence » lu par tranches (1/4 jusqu\'à 10 ans, 1/3 au-delà), comme le simulateur du Code du travail numérique ; une lecture « 1/3 sur toutes les années dès 10 ans » est possible. Le texte officiel (KALI) et le simulateur officiel lisent les cadres sur toute l\'ancienneté (corrigé le 20/11/2026).','Maladie ou accident de 6 mois ou plus : l\'outil déduit toute la période (lecture « non prise en compte ») ; une lecture « seul l\'excédent est déduit » est possible. Chaque ligne d\'absence saisie est traitée comme une suspension distincte.','Accident du travail / maladie professionnelle : non distingués par l\'article 3.7, règle légale (prise en compte) conservée. Paternité, congé parental, congé sans solde, préavis : non mentionnés, règles légales.','Contrats antérieurs rompus par démission ou faute grave : non gérés (contrats successifs hors périmètre).','Préavis : non couvert.'],
+   sources:[['Fédération Syntec — Rupture du contrat de travail (art. 4.5, 4.6, 4.8)','https://www.syntec.fr/convention-collective/resiliation-du-contrat-de-travail/'],['Fédération Syntec — Conditions d\'engagement (art. 3.7 Ancienneté)','https://www.syntec.fr/convention-collective/conditions-d-engagement/#anciennete'],['Fédération Syntec — la convention collective','https://www.syntec.fr/convention-collective/']]
+ },
+ { id:'1596', titre:'Bâtiment ouvriers (jusqu\'à 10 salariés) — IDCC 1596', provisoire:true,
+   items:[['Licenciement / rupture conventionnelle (art. 10.3)','De 2 à 5 ans : 1/10 de mois par année. À partir de 5 ans : 3/20 par année. Au-delà de 15 ans : + 1/20 par année. Majoration de 10 % à plus de 55 ans. Due à l\'ouvrier qui ne remplit pas les conditions d\'une pension à taux plein.'],['Retraite','L\'indemnité conventionnelle de départ est servie par la CNPO (art. 15 du règlement du régime national de prévoyance), pas par l\'employeur : seul le minimum légal est calculé.']],
+   ambigu:['Seuil d\'ancienneté : 1 an ou 2 ans selon la page.','Cas de la fin de chantier non traité.','Condition de pension à taux plein non vérifiée.'],
+   sources:[['LégiSocial — IDCC 1596','https://www.legisocial.fr/conventions-collectives-nationales/1596-ouvriers-du-batiment-10-salaries/licenciement-indemnite-salaire-reference.html']]
+ },
+ { id:'1979', titre:'Hôtels, cafés, restaurants (HCR) — IDCC 1979', provisoire:true,
+   items:[
+    ['Licenciement (art. 32)','Dès 2 ans : 1/10 de mois par année jusqu\'à 10 ans, puis taux supérieur (lecture : 7/30). Le légal l\'emporte dans les deux lectures.'],
+    ['Retraite','Indemnité légale ; dispositions HCR propres à vérifier.']
+   ],
+   ambigu:['Taux au-delà de 10 ans : « 1/10 + 1/15 » ou 7/30 selon la page.'],
+   sources:[['PayFit — HCR','https://payfit.com/fr/ccn/hotellerie-cafe-restaurant/indemnite-licenciement/']]
+ }
+];
+
+/* Fiches des conventions ajoutées avec le top 30 (V2.2). Sources secondaires (LégiSocial, fiche-paie.fr, Code du travail numérique) : à valider sur Légifrance. */
+const LS = 'https://www.legisocial.fr/conventions-collectives-nationales/';
+RULES_DOC.push(
+ { id:'2609', titre:'Bâtiment — ETAM — IDCC 2609', provisoire:true,
+   items:[['Licenciement (art. 8.4 et 8.5)','2 ans révolus. 2,5/10 de mois par année de 2 à 15 ans, 3,5/10 au-delà de 15 ans. Plafond 10 mois ; +10 % si plus de 55 ans à la fin du préavis (ajoutée après plafond).'],
+          ['Départ volontaire (art. 8.10)','1/10 de mois par année de 2 à 10 ans, 1,5/10 au-delà. Plafond 5 mois.'],
+          ['Mise à la retraite (art. 8.7, moins de 65 ans)','1,5/10 de mois par année de 2 à 10 ans, 2,5/10 au-delà. Plafond 8 mois. Non cumulable avec l\'indemnité de licenciement.'],
+          ['Assiette','Rémunération du dernier mois + 1/12 des éléments variables des 12 derniers mois (outil : plus favorable 12 / 3 mois).']],
+   ambigu:['Taux supérieurs lus comme des tranches (2,5/10 jusqu\'à 15 ans puis 3,5/10 sur les années au-delà), à confirmer.','Comptage des années aux seuils de 2 et 15 ans non précisé.','Le conventionnel reste inférieur au légal pour le licenciement ; il l\'emporte pour la retraite.'],
+   sources:[['fiche-paie.fr — licenciement ETAM','https://fiche-paie.fr/convention-collective/batiment-etam-2609/indemnite-licenciement'],['fiche-paie.fr — départ et mise à la retraite','https://fiche-paie.fr/convention-collective/batiment-etam-2609/depart-retraite']] },
+ { id:'7024', titre:'Production agricole et CUMA — IDCC 7024', provisoire:true,
+   items:[['Licenciement (art. 9.3.1)','Au moins ¼ de mois par année les 10 premières années, ⅓ ensuite : identique au légal.'],
+          ['Départ volontaire à la retraite','Non-cadres : 1 mois dès 10 ans, 2 mois dès 20 ans, 3 mois dès 30 ans. TAM et cadres : 1,5 / 3 / 4 mois.'],
+          ['Mise à la retraite','Renvoi au régime du licenciement : légal.']],
+   ambigu:['Source secondaire (advizexperts) : bornes (« plus de 30 ans » : ≥ 30 ou > 30) et base de salaire à confirmer.','Seuil conventionnel avant 10 ans non précisé.'],
+   sources:[['advizexperts — IDCC 7024','https://advizexperts.fr/convention-collective/convention-collective-production-agricole-cuma-idcc-7024/'],['LégiSocial — 7024',LS+'7024-production-agricole-et-cuma/']] },
+ { id:'1501', titre:'Restauration rapide — IDCC 1501', provisoire:true,
+   items:[['Licenciement non-cadres (art. 13)','Dès 2 ans : 1/10 de mois par année, + 1/15 par année au-delà de 10 ans, + 2/15 au-delà de 15 ans (lu comme le simulateur officiel).'],['Cadres (art. 13)','Dès 1 an. 1/10 par année jusqu\'à 5 ans ; au-delà 2/10 par année + 1/15 par année de 5 à 10 ans + 2/15 de 10 à 15 ans + 3/15 au-delà de 15 ans.'],['Licenciement économique','+15 % à 50 ans et plus avec 10 ans d\'ancienneté (licenciement pour motif économique).'],['Départ en retraite (art. 28)','60 ans révolus. 1 mois dès 10 ans, 2 mois dès 15 ans, 3 mois dès 20 ans, 4 mois dès 30 ans.'],['Mise à la retraite','Conditions de la législation en vigueur : légal.']],
+   ambigu:['Cadres : le simulateur officiel applique la majoration de 2/15 dès 5 ans, ce que le texte ne prévoit pas : écart assumé, voir le recoupement.','Seuil : 1 an (texte) ou 2 ans (tableau) pour les non-cadres.'],
+   sources:[['LégiSocial — licenciement',LS+'1501-restauration-rapide/licenciement-droit-calcul-indemnite-salaries-cadres.html'],['fiche-paie.fr — retraite','https://fiche-paie.fr/convention-collective/restauration-rapide-1501/depart-retraite']] },
+ { id:'3248', titre:'Métallurgie — IDCC 3248', provisoire:true,
+   items:[['Départ volontaire (art. 77.3)','0,5 mois dès 2 ans ; 1 dès 5 ans ; 2 dès 10 ans ; 3 dès 20 ans ; 4 dès 30 ans ; 5 dès 35 ans ; 6 dès 40 ans. Tous groupes d\'emplois.'],['Mise à la retraite','Au moins l\'indemnité légale de licenciement.'],['Licenciement groupes A à E (art. 75.3)','Dès 8 mois : 1/4 de mois par année jusqu\'à 10 ans, 1/3 au-delà.'],['Licenciement groupes F à I','1/4 par année sous 8 ans ; dès 8 ans 1/5 jusqu\'à 7 ans + 3/5 au-delà. +20 % (50-55 ans) ou +30 % (55-60 ans) avec 5 ans d\'ancienneté, planchers de 3 et 6 mois, plafond 18 mois.']],
+   ambigu:['Minoration de 5 à 40 % dès 61 ans (retraite à taux plein), majoration de 50 % pour absences prolongées : non gérées.','Saisir une éventuelle indemnité supra-légale à la main.'],
+   sources:[['Altis — retraite métallurgie','https://altis-conseil.fr/retraite-convention-collective-metallurgie/'],['Éditions Tissot — nouvelle convention','https://www.editions-tissot.fr/actualite/droit-du-travail/licenciement-preavis-indemnite-le-point-sur-la-nouvelle-convention-de-la-metallurgie']] },
+ { id:'0016', titre:'Transports routiers — IDCC 0016', provisoire:true,
+   items:[['Ouvriers et employés','Dès 2 ans : 1/10 de mois par année ; dès 3 ans : 2/10. Base : moyenne des 3 derniers mois.'],['Techniciens et agents de maîtrise','Dès 2 ans : 1/10 ; dès 3 ans : 3/10 par année.'],['Ingénieurs et cadres','Dès 3 ans : 4/10 de mois par année. Indemnité complémentaire (2 / 3 / 4 mois après 10 / 20 / 30 ans) non modélisée.'],['Réduction d\'âge','20 % par année après 60 ans : non appliquée.'],['Retraite : ouvriers, employés, techniciens et agents de maîtrise (art. 11 quinquies, 17 ter, 21 ter)','1/2 mois après 10 ans, 1 mois après 15, 1,5 après 20, 2 après 25, 2,5 après 30. Salarié de 65 ans, ou de 60 ans dans les cas prévus (inaptitude, retraite complémentaire liquidée, retraite anticipée) : conditions d\'âge signalées, non vérifiées. Base : moyenne des 12 derniers mois.'],['Retraite des cadres (annexe IV, art. 18)','4,5 % à 21 % de la rémunération annuelle réelle selon l\'ancienneté, avec minimums et plafonds de la grille garantie : non modélisée.']],
+   ambigu:['Le taux supérieur s\'applique-t-il à toutes les années ou seulement au-delà du seuil ? (toutes les années retenues).','À exactement 3 ans, le simulateur officiel n\'applique pas le barème cadres (« au moins 3 années » dans le texte).'],
+   sources:[['fiche-paie.fr — licenciement','https://fiche-paie.fr/convention-collective/transports-routiers-0016/indemnite-licenciement'],['LégiSocial — licenciement',LS+'16-transports-routiers-et-activites-auxiliaires/licenciement-congediement.html']] },
+ { id:'0573', titre:'Commerces de gros — IDCC 0573', provisoire:true,
+   items:[['Licenciement employés (art. 37)','Dès 1 an : 1/5 de mois par année, + 2/15 par année au-delà de 10 ans.'],['Agents de maîtrise (avenant II, art. 4)','Dès 1 an : 2/10 par année + 2/15 au-delà de 10 ans. Licenciement économique à 55 ans et plus avec 15 ans (licenciement pour motif économique) : 2/10 jusqu\'à 9 ans, 3/10 ensuite, +20 %, plafond 6 mois.'],['Cadres (avenant I, art. 4)','Dès 1 an : 2/10 par année jusqu\'à 5 ans ; au-delà 3/10 (années 1 à 9), 4/10 (10e à 19e), 5/10 (dès la 20e). Plafond 12 mois. +15 % (50-55 ans) ou +20 % (55 ans et plus) avec 15 ans d\'ancienneté.'],['Retraite (départ et mise à la retraite)','Employés : 1/10 de mois par année, plafond 3 mois. Agents de maîtrise : 2/20 par année + 1/20 après 15 ans, plafond 6 mois. Cadres : 2/20, 3/20, 4/20 par tranche, plafond 6 mois. Relevé sur synthèse, à recouper sur le texte.']],
+   ambigu:['Texte du licenciement relu le 21/11/2026 et recoupé avec le simulateur officiel.','Plafond de 6 mois des agents de maîtrise (éco) : lu majoration comprise comme le simulateur officiel.'],
+   sources:[['LégiSocial — licenciement',LS+'573-commerces-de-gros/licenciement-conditions-indemnite.html'],['LégiSocial — retraite',LS+'573-commerces-gros/retraite-depart-volontaire-mise-retraite.html']] },
+ { id:'1527', titre:'Immobilier — IDCC 1527', provisoire:true,
+   items:[['Licenciement (art. 33)','Motif personnel : ¼ du salaire global brut mensuel par année après 2 ans. Motif économique : maximum 6 mois, minimum légal.'],
+          ['Départ volontaire (avenant 95, art. 34)','Plus de 5 ans : 0,5 mois ; plus de 10 : 1 ; plus de 15 : 1,5 ; plus de 20 : 2 ; plus de 25 : 2,5 ; plus de 30 : 3. Base : salaire global brut mensuel contractuel.'],
+          ['Mise à la retraite','Barème de 0,11 à 0,21 mois par année selon l\'ancienneté et l\'âge : toujours inférieur au légal. Légal appliqué.']],
+   ambigu:['Bornes exactes (5, 10, 15 ans pile) non précisées : « plus de » retenu strictement.','Base de salaire : salaire contractuel, non la moyenne des 12 mois.'],
+   sources:[['LégiSocial — retraite',LS+'1527-immobilier-administrateurs-de-biens-et-agents-immobiliers/retraite-depart-volontaire-indemnite-mise-retraite.html'],['LégiSocial — licenciement',LS+'1527-immobilier/licenciement-anciennete-motifs.html'],['Légifrance — avenant 95','https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000047011121']] },
+ { id:'1043', titre:'Gardiens, concierges et employés d\'immeubles — IDCC 1043', provisoire:true,
+   items:[['Licenciement (art. 16)','Dès 1 an : 1/5 de mois par année sur la totalité des années, + 2/15 par année au-delà de la 7e, + 1/10 par année au-delà de la 19e. Années incomplètes au prorata.'],['Retraite','Non modélisée : légal appliqué.']],
+   ambigu:['Texte relu sur Légifrance le 21/11/2026 et recoupé avec le simulateur officiel.','Base de salaire : rémunération globale brute mensuelle contractuelle (art. 22.2), 1/12 des 12 mois ou 1/3 des 3 mois : le plus favorable est retenu.'],
+   sources:[['LégiSocial — licenciement',LS+'1043-gardiens-et-concierges-immeubles/licenciement-faute-privative-calcul-salaire-de-reference.html']] },
+ { id:'1147', titre:'Personnel des cabinets médicaux — IDCC 1147', provisoire:true,
+   items:[['Licenciement (art. 25)','Dès 1 an : 1/5 de mois par année + 2/15 au-delà de 10 ans. Doublé en inaptitude professionnelle.'],
+          ['Départ volontaire','10 à 15 ans : 0,5 mois ; 15 à 20 : 1 ; 20 à 30 : 1,5 ; plus de 30 : 2 (identique au légal).'],
+          ['Mise à la retraite','Régime du licenciement.']],
+   ambigu:['Le conventionnel est inférieur au légal : le légal sert de plancher (y compris en rupture conventionnelle).'],
+   sources:[['LégiSocial — licenciement',LS+'1147-cabinets-medicaux/licenciement-indemnite-motif-anciennete-portabilite.html'],['LégiSocial — retraite',LS+'1147-personnel-cabinets-medicaux/retraite.html']] },
+ { id:'2596', titre:'Coiffure et professions connexes — IDCC 2596', provisoire:true,
+   items:[['Employés (techniques, coiffeurs, esthétique, non techniques)','Calcul légal.'],
+          ['Cadres et agents de maîtrise','¼ de mois par année, plafond 6 mois, sur le salaire réel moyen de la dernière année.'],
+          ['Retraite','Renvoi au régime légal.']],
+   ambigu:['Synthèse partielle : seuil et plafond général hors cadres non précisés.','La synthèse cite la formule 1/5 + 2/15, ancienne : calcul légal actuel retenu.'],
+   sources:[['LégiSocial — licenciement',LS+'2596-coiffure-et-professions-connexes/licenciement-montant-indemnite.html'],['LégiSocial — retraite',LS+'2596-coiffure-et-professions-connexes/retraite-indemnite-perco-depart.html']] },
+ { id:'2511', titre:'Sport — IDCC 2511', provisoire:true,
+   items:[['Licenciement','Dès 1 an : 1/5 de mois par année de 1 à 5 ans, 1/4 de 6 à 10 ans, 1/3 au-delà. Doublé en inaptitude professionnelle.'],
+          ['Départ volontaire à la retraite','10 ans : 1,5 mois ; 15 ans : 2 ; 20 ans : 4 ; 30 ans : 5.'],
+          ['Mise à la retraite','Idem calcul conventionnel du licenciement.']],
+   ambigu:['Formule générale 1/5 + 2/15 incompatible avec le tableau : tableau retenu.','Années intermédiaires du barème de départ non précisées (dernier palier atteint retenu).','Plafond non indiqué.'],
+   sources:[['LégiSocial — licenciement',LS+'2511-sport/licenciement-droit-calcul-indemnite-salaire-de-reference.html'],['LégiSocial — retraite',LS+'2511-sport/retraite-indemnite-depart-volontaire-la-retraite-mise-la-retraite.html']] },
+ { id:'1517', titre:'Commerces de détail non alimentaires — IDCC 1517', provisoire:true,
+   items:[['Licenciement (art. 4, chap. VI)','Dès 8 mois : 1/4 de mois par année jusqu\'à 10 ans, puis 1/3 + 1/15 par année à partir de 10 ans. Années incomplètes au prorata des mois complets.'],['Départ volontaire','10 ans : 1 mois ; 15 : 1,5 ; 20 : 2 ; 25 : 2,5 ; 30 : 3.'],['Mise à la retraite','Identique à l\'indemnité de licenciement.']],
+   ambigu:['Texte relu le 21/11/2026 et recoupé avec le simulateur officiel (licenciement).','Assiette du départ volontaire mal restituée par la synthèse (moitié des 12 mois ?).'],
+   sources:[['LégiSocial — retraite',LS+'1517-commerces-de-detail-non-alimentaires/retraite-depart-volontaire-mise-la-retraite-reduction-horaire-de-travail.html'],['LégiSocial — licenciement',LS+'1517-commerces-de-detail-non-alimentaires/licenciement-droit-calcul-indemnite.html']] },
+ { id:'0843', titre:'Boulangerie-pâtisserie artisanale — IDCC 0843', provisoire:true,
+   items:[['Licenciement','Renvoi au légal.'],
+          ['Départ et mise à la retraite','10 ans : 1 mois ; 15 : 1,5 ; 20 : 2 ; 25 : 2,5 ; 30 : 3 ; 35 : 3,5 ; 40 : 4. Mise à la retraite sous 10 ans : licenciement ; jamais en dessous du légal.']],
+   ambigu:['Seuil d\'ancienneté du licenciement : 1 ou 2 ans selon les passages.','Années intermédiaires non détaillées.'],
+   sources:[['LégiSocial — retraite',LS+'843-boulangerie-patisserie/retraite-depart-volontaire-mise-retraite-anciennete.html']] },
+ { id:'1505', titre:'Commerce de détail alimentaire non spécialisé — IDCC 1505', provisoire:true,
+   items:[['Licenciement (art. 21)','Dès 8 mois : ¼ de mois par année jusqu\'à 10 ans, ⅓ au-delà : identique au légal.'],['Départ à la retraite (art. 23.4.1)','Dès 2 ans : 1/10 de mois par année, plafond 3 mois. Salaire : plus favorable des moyennes 12 et 3 mois.'],['Mise à la retraite (art. 23.4.2)','Au moins égale à l\'indemnité légale de licenciement.']],
+   ambigu:['Texte de la retraite relu le 21/11/2026.'],
+   sources:[['fiche-paie.fr — licenciement','https://fiche-paie.fr/convention-collective/commerce-detail-alimentaire-non-specialise-1505/indemnite-licenciement']] },
+ { id:'1597', titre:'Bâtiment — ouvriers (plus de 10 salariés) — IDCC 1597', provisoire:true,
+   items:[['Licenciement (art. 10.3)','Barème identique à celui des ouvriers jusqu\'à 10 salariés (1596), relu sur le texte le 21/11/2026.'],['Retraite','Indemnité servie par la CNPO : seul le minimum légal est calculé (voir 1596).']],
+   ambigu:['Condition de pension à taux plein non vérifiée.'],
+   sources:[['Code du travail numérique','https://code.travail.gouv.fr/']] },
+ { id:'1619', titre:'Cabinets dentaires — IDCC 1619', provisoire:true,
+   items:[['Licenciement et retraite','Barème non confirmé ; mise à la retraite = garantie identique à celle du licenciement (art. 4.4). Légal appliqué.']],
+   ambigu:['Texte intégral nécessaire.'],
+   sources:[['LégiSocial — retraite',LS+'1619-cabinets-dentaires/retraite-indemnite-depart-mise-en-retraite.html']] },
+ { id:'2216', titre:'Commerce de détail et de gros à prédominance alimentaire — IDCC 2216', provisoire:true,
+   items:[['Licenciement ouvriers, employés, agents de maîtrise (annexes I et II, art. 7)','Dès 8 mois : 1/4 de mois par année jusqu\'à 10 ans, 1/3 au-delà. Licenciement économique à plus de 50 ans : +20 %.'],['Cadres (annexe III, art. 7)','1/4 par année jusqu\'à 5 ans ; au-delà 3/10 (jusqu\'à 10 ans), 4/10 (10 à 20 ans), 5/10 (au-delà). Plafond 12 mois ; + 1/3 de mois par année au-delà de 40 ans. Économique à 50 ans et plus : +20 %.'],['Départ en retraite (art. 8.2)','Ouvriers, employés, agents de maîtrise, dès 10 ans : 2/20 par année jusqu\'à 10 ans, 3/20 au-delà, plafond 4 mois. Cadres, dès 5 ans : 2/20 jusqu\'à 10 ans, 3/20 de 10 à 20 ans, 5/20 au-delà, plafond 6 mois.'],['Mise à la retraite (art. 8.3)','Au moins l\'indemnité de licenciement de l\'article 7.']],
+   ambigu:['Texte relu le 21/11/2026 : l\'ancienne lecture « 1/5 + 2/15 » de la synthèse était erronée.','Exclusions de la majoration économique (reclassement aidé, préretraite, retraite sans abattement) non vérifiées.'],
+   sources:[['LégiSocial — licenciement',LS+'2216-commerce-detail-gros-alimentaire/licenciement-droit-calcul-indemnite-ouvriers-cadres-agent-de-maitrise-employes-personnel-de-livraison.html']] },
+ { id:'2098', titre:'Prestataires de services du secteur tertiaire — IDCC 2098', provisoire:true,
+   items:[['Non-cadres (dès 2 ans)','1/10 de mois par année (0-5 ans), 1/7 (6-10), 1/5 (11-20), 1/4 (21-30), 1/3 (au-delà). Plafond 12 mois.'],['Cadres (avenant cadres, art. 3.1, dès 2 ans)','3/10 (0-5 ans), 4/10 (6-10), 5/10 (11-15), 6/10 (au-delà). +10 % (50-55 ans), +25 % (55 ans et plus), puis plafond de 18 mois, majoration comprise.'],['Retraite des cadres (art. 3.2)','Allocation : 1/2 mois de 2 à 5 ans, 1 mois dès 5 ans, 2 dès 10, 3 dès 15, 4 dès 20, 5 dès 25, 6 dès 30. Mise à la retraite : au moins le légal.'],['Retraite des non-cadres','Aucune allocation conventionnelle relevée : légal.']],
+   ambigu:['Allocation des cadres lue par paliers (le texte parle de calcul proportionnel pour chaque période entamée).','Conditions de retraite à taux plein non vérifiées.'],
+   sources:[['LégiSocial — licenciement',LS+'2098-prestataires-de-services-du-tertiaire/licenciement-droit-calcul-indemnite-cadres.html'],['LégiSocial — retraite',LS+'2098-prestataires-de-services-du-tertiaire/retraite-allocation-depart-volontaire-mise-la-retraite-cadre.html']] },
+ { id:'0787', titre:'Experts-comptables et commissaires aux comptes — IDCC 0787', provisoire:true,
+   items:[['Licenciement','Renvoi au légal (employés et cadres).'],
+          ['Départ volontaire','Dès 5 ans : ½ mois de salaire, + majoration de 1/10 par année complète (lecture : 1/10 de mois par année complète au-delà de 5 ans).'],['Mise à la retraite','Dispositions légales.']],
+   ambigu:['Base de la « majoration de 1/10ème par année complète de présence » non précisée par l\'extrait : à vérifier en priorité.','Plafond et catégories non précisés.'],
+   sources:[['LégiSocial — retraite',LS+'787-experts-comptables-et-commissaires-aux-comptes/retraite-depart-volontaire-mise-la-retraite.html']] },
+ { id:'1996', titre:'Pharmacie d\'officine — IDCC 1996', provisoire:true,
+   items:[['Licenciement non-cadres (art. 21)','Dès 8 mois : 1/4 de mois par année jusqu\'à 10 ans, 3,34/10 par année à compter de la 11e.'],['Licenciement cadres (annexe, art. 6)','Moins de 5 ans : 1/4 par année. Dès 5 ans : 3/10 jusqu\'à 15 ans, 5/10 à compter de la 16e ; licenciement économique : 3/10 jusqu\'à 10 ans, 3,34/10 de la 11e à la 15e année, 5/10 ensuite (licenciement pour motif économique).'],['Départ volontaire','10 ans : 0,5 mois ; 15 : 1 ; 20 : 1,5 ; 25 : 2 ; 30 : 2,5.'],['Mise à la retraite','« Au moins » l\'indemnité légale ou conventionnelle de licenciement : légal appliqué (non modélisée).']],
+   ambigu:['Ancienneté appréciée à la fin du préavis dans le texte : saisir la date de fin de préavis comme date de sortie.','Barème de la mise à la retraite à confirmer.'],
+   sources:[['LégiSocial — retraite',LS+'1996-pharmacie-officine/retraite-indemnite-depart-volontaire-indemnite-mise-en-retraite.html'],['LégiSocial — licenciement',LS+'1996-pharmacie-officine/licenciement-indemnite-motif.html']] },
+ { id:'1483', titre:'Commerce de détail habillement et textiles — IDCC 1483', provisoire:true,
+   items:[['Licenciement non-cadres (art. 17)','Dès 1 an : 1/5 de mois par année jusqu\'à 10 ans, 1/3 par année au-delà.'],['Encadrement (art. 11, chap. II)','1/5 par année de 1 à 5 ans ; dès 5 ans 1/4 par année dès la première ; 1/3 par année au-delà de 16 ans. +25 % à 50 ans et plus avec 15 ans de présence.'],['Retraite','Non modélisée : légal appliqué.']],
+   ambigu:['Texte relu le 21/11/2026 et recoupé avec le simulateur officiel.','« Licencié après l\'âge de 50 ans » : lu 50 ans révolus et plus, comme le simulateur officiel.'],
+   sources:[['LégiSocial',LS+'1483-commerce-de-detail-habillement-et-textiles/']] },
+ { id:'7018', titre:'Entreprises du paysage — IDCC 7018', provisoire:true,
+   items:[['Barème','Non relevé : légal appliqué.'],['Retraite','Avenant n° 47 (ouvriers, employés, TAM), en vigueur le 1er juillet 2026 : non relevé.']], ambigu:['Texte intégral nécessaire.'], sources:[['LégiSocial',LS+'7018-entreprises-du-paysage/']] },
+ { id:'1518', titre:'Éducation, culture, loisirs, animation — IDCC 1518', provisoire:true,
+   items:[['Licenciement (art. 4.4.3.2)','Dès 1 an : ¼ de mois par année de 1 à 10 ans, ⅓ à partir de la 11e année (identique au légal). Doublé en inaptitude professionnelle.'],['Retraite','Mise à la retraite et départ volontaire : indemnité de licenciement pour motif personnel (avenant 157).']],
+   ambigu:['La synthèse cite aussi 1/5 + 2/15 : tableau retenu.','Plafond non indiqué.'],
+   sources:[['LégiSocial — licenciement',LS+'1518-education-culture-loisirs-animation/licenciement-indemnite.html'],['LégiSocial — retraite',LS+'1518-education-culture-loisirs-animation/retraite-motif-depart-volontaire.html']] },
+ { id:'3127', titre:'Services à la personne — entreprises — IDCC 3127', provisoire:true,
+   items:[['Barème','Non relevé : légal appliqué.']], ambigu:['Texte intégral nécessaire.'], sources:[['LégiSocial',LS+'3127-services-a-la-personne-entreprises/']] },
+ { id:'3043', titre:'Propreté et services associés — IDCC 3043', provisoire:true,
+   items:[['Barème','Non relevé : légal appliqué.']], ambigu:['Texte intégral nécessaire.'], sources:[['LégiSocial',LS+'3043-proprete-et-services-associes/']] }
+);
+
+/* Rangs 31 à 50 (V3.5) : fiches relues dans KALI ; classement établi sur le nombre d'établissements (DSN juillet 2026, opcodirect.fr), rangs 26 à 60 déduits des tableaux sectoriels. */
+RULES_DOC.push(
+{ id:"1702", titre:"Travaux publics — ouvriers — IDCC 1702", items:[["Licenciement (art. 10.3)", "Ouvrier ne pouvant pas prétendre à une pension à taux plein : de 2 à 5 ans 1/10 de mois par année ; au-delà de 5 ans 3/20 par année depuis l'entrée ; 1/20 de plus par année au-delà de 15 ans ; majoration de 10 % au-delà de 55 ans."], ["Licenciement économique (art. 10.3.2)", "+ 35/100 de mois dès 5 ans ; de 2 à 5 ans : +70 % de l'indemnité."], ["Salaire (art. 10.5)", "Plus favorable des moyennes des 3 et des 12 derniers mois."]], ambigu:["Condition de non-accès à une pension à taux plein non contrôlée par l'outil.", "Retraite : non relevée (légal)."], sources:[["Légifrance — art. 10.3 (KALIARTI000005801849)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005801849"], ["Légifrance — art. 10.5 (KALIARTI000005801851)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005801851"], ["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"2614", titre:"Travaux publics — ETAM — IDCC 2614", items:[["Licenciement (art. 8.4 et 8.5)", "Dès 2 ans : 2,5/10 de mois par année jusqu'à 15 ans, 3,5/10 au-delà ; plafond 10 mois ; +10 % au-delà de 55 ans (après plafond). ETAM de 65 ans et plus : art. 8.7."], ["Salaire (art. 8.5)", "Dernier mois + 1/12 des éléments variables ; l'outil retient la plus favorable des moyennes 12 et 3 mois."]], ambigu:["Mise à la retraite (art. 8.7) et départ volontaire non modélisés."], sources:[["Légifrance — art. 8.5 (KALIARTI000018926426)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000018926426"], ["Légifrance — art. 8.4 (KALIARTI000018926425)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000018926425"], ["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"1266", titre:"Restauration de collectivités — IDCC 1266", items:[["Licenciement non-cadres (art. 14)", "1 an d'ancienneté, moins de 65 ans : 1/5 de mois par année + 2/15 par année au-delà de 10 ans."], ["Cadres (art. 14)", "Barème progressif (1/5 + 1/15 de 5 à 10 ans + 2/15 de 10 à 15 ans + 3/15 au-delà) ; le plus favorable avec le légal."], ["Salaire", "Plus favorable de 1/12 des 12 derniers mois ou 1/3 des 3 derniers (primes annuelles au prorata)."]], ambigu:["Retraite (art. 35) : indemnité de départ non modélisée."], sources:[["Légifrance — art. 14 (KALIARTI000021822343)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000021822343"], ["Légifrance — art. 35 (KALIARTI000018649415)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000018649415"], ["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"1516", titre:"Organismes de formation — IDCC 1516", items:[["Licenciement (art. 9.2, avenant du 6 février 2023)", "8 mois d'ancienneté ; 1/4 de mois par année jusqu'à 10 ans, 1/3 au-delà (identique au légal)."], ["Préavis (art. 9.1)", "Employés : 1 mois, 2 mois dès 2 ans ; agents de maîtrise et techniciens : 2 mois ; cadres : 3 mois."]], ambigu:["Retraite : dispositions propres non relevées."], sources:[["Légifrance — art. 9 (KALIARTI000047518146)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000047518146"], ["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"1404", titre:"Maintenance, distribution et location de matériels (SDLM) — IDCC 1404", provisoire:true, items:[["Licenciement", "Le simulateur officiel donne un résultat conventionnel identique au légal."]], ambigu:["Texte conventionnel à relire sur Légifrance (non retrouvé par mot-clé dans la base ouverte)."], sources:[["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"0675", titre:"Succursales de vente au détail d'habillement — IDCC 0675", items:[["Agents de maîtrise (art. 11)", "Dès 2 ans : 1/10 de mois par année jusqu'à 10 ans, + 2/5 par année au-delà ; plafond 9 mois ; +50 % de l'indemnité et du plafond dès 50 ans avec 20 ans de présence."], ["Cadres (art. 16)", "2 à 5 ans : 1/10 par année ; après 5 ans : 1/5 par année depuis l'entrée jusqu'à 15 ans, puis 2/5 ; plafond 12 mois ; même majoration de 50 % (constatée par le simulateur officiel)."], ["Employés", "Pas de barème propre : légal."]], ambigu:["Plafond de 6 mois (licenciements collectifs pour difficultés économiques) non appliqué à un licenciement individuel.", "Fin de carrière (art. 44) : moitié de l'indemnité de licenciement, non modélisée."], sources:[["Légifrance — art. 11 (KALIARTI000005851122)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005851122"], ["Légifrance — art. 16 (KALIARTI000005851148)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005851148"], ["Légifrance — art. 44 (KALIARTI000005851085)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005851085"], ["Simulateur officiel (recoupement)", "https://code.travail.gouv.fr/outils/indemnite-licenciement"]] },
+{ id:"0413", titre:"Établissements pour personnes inadaptées et handicapées (CCN 66) — IDCC 0413", provisoire:true, items:[["Non-cadres (art. 17, non étendu)", "Dès 2 ans : 1/2 mois par année, plafond 6 mois ; salaire : moyenne des 3 derniers mois."], ["Cadres (annexe 6)", "1/2 mois par année comme non-cadre + 1 mois par année comme cadre, plafond 12 mois : non modélisé (répartition de l'ancienneté nécessaire)."]], ambigu:["Art. 17 non étendu : applicable aux employeurs adhérents.", "Plafond « rémunérations jusqu'à 65 ans » non appliqué."], sources:[["Légifrance — art. 17 (KALIARTI000005863126)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000005863126"], ["Légifrance — annexe 6, art. 10 (KALIARTI000022837395)", "https://www.legifrance.gouv.fr/conv_coll/article/KALIARTI000022837395"]] },
+{ id:"3032", titre:"Esthétique, parfumerie — IDCC 3032", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 3032)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"1431", titre:"Optique-lunetterie de détail — IDCC 1431", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 1431)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"2378", titre:"Intérimaires des entreprises de travail temporaire — IDCC 2378", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 2378)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"1413", titre:"Permanents des entreprises de travail temporaire — IDCC 1413", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 1413)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"3237", titre:"Commerce de détail alimentaire spécialisé — IDCC 3237", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 3237)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"2332", titre:"Entreprises d'architecture — IDCC 2332", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 2332)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"3090", titre:"Spectacle vivant privé — IDCC 3090", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 3090)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"2335", titre:"Agences générales d'assurances — IDCC 2335", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 2335)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"1880", titre:"Négoce de l'ameublement — IDCC 1880", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 1880)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"3212", titre:"Travaux publics — cadres — IDCC 3212", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 3212)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"1285", titre:"Entreprises artistiques et culturelles — IDCC 1285", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 1285)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"3216", titre:"Négoce des matériaux de construction — IDCC 3216", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 3216)','https://www.legifrance.gouv.fr/liste/idcc']] },
+{ id:"1539", titre:"Bureau et numérique, commerces et services — IDCC 1539", provisoire:true, items:[['Barème','Texte absent de la base KALI ouverte et du simulateur officiel : non relevé, minimum légal calculé.']], ambigu:['À relever sur Légifrance (texte intégral) avant toute modélisation.'], sources:[['Légifrance — conventions collectives (IDCC 1539)','https://www.legifrance.gouv.fr/liste/idcc']] }
+);
+
+/* ---------- Etat ---------- */
+const $ = id => document.getElementById(id);
+const blankMois = () => Array.from({length:12},()=>({brut:'',recon:'',inclus:true,note:''}));
+/* ---------- Paramètres (mémorisés dans ce navigateur) ---------- */
+const PRKEY='indemnites-params-v1';
+const COULEURS=[['sapin','Vert sapin','#0d6656'],['canard','Bleu canard','#0e6577'],['bleu','Bleu','#2160a5'],['ardoise','Ardoise','#3d5a78'],['violet','Violet','#5b4a9e'],['bordeaux','Bordeaux','#8f2b4b'],['ocre','Ocre','#9a5316'],['graphite','Graphite','#3b4046']];
+let PARAMS = (()=>{ try{ const o=JSON.parse(localStorage.getItem(PRKEY)||'null'); if(o&&typeof o==='object') return Object.assign({auteur:'',couleur:'sapin',hono:{}},o,{hono:Object.assign({},o.hono)}); }catch(e){} return {auteur:'',couleur:'sapin',hono:{}}; })();
+function saveParams(){ try{ localStorage.setItem(PRKEY,JSON.stringify(PARAMS)); }catch(e){} }
+const motifKey = () => S.motif==='lic' && S.eco ? 'licEco' : S.motif;
+const honoDefaut = motif => { let v=PARAMS.hono[motif]; if(v==null && motif==='licEco') v=PARAMS.hono.lic; return v==null?'':String(v); };
+const couleurHex = () => (COULEURS.find(c=>c[0]===PARAMS.couleur)||COULEURS[0])[2];
+const hex2rgb = h => [1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const mixHex = (a,b,k) => '#'+hex2rgb(a).map((v,i)=>Math.round(v*(1-k)+hex2rgb(b)[i]*k).toString(16).padStart(2,'0')).join('');
+function applyTheme(){
+  const base=couleurHex(), st=document.documentElement.style;
+  const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if(PARAMS.couleur==='sapin' || !COULEURS.some(c=>c[0]===PARAMS.couleur)){ ['--accent','--accent-2','--accent-soft','--accent-ink'].forEach(k=>st.removeProperty(k)); }
+  else if(dark){ st.setProperty('--accent',mixHex(base,'#ffffff',.32)); st.setProperty('--accent-2',mixHex(base,'#ffffff',.45)); st.setProperty('--accent-soft',mixHex(base,'#141513',.78)); st.setProperty('--accent-ink','#0b1210'); }
+  else { st.setProperty('--accent',base); st.setProperty('--accent-2',mixHex(base,'#000000',.2)); st.setProperty('--accent-soft',mixHex(base,'#ffffff',.88)); st.setProperty('--accent-ink','#ffffff'); }
+  const m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content',base);
+}
+applyTheme();
+try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme); }catch(e){}
+const DEFAULT = () => ({ id:null, nom:'', prenom:'', emploi:'', classif:'', statut:'', motif:'rc', ccn:'none', categorie:'etam', age:'', naissance:'', ageRef:'sortie',
+  entree:'', sortie:'', dateRef:'', absences:[], mois:blankMois(),
+  eco:false, csp:false, preavisBase:'dernier', preavisMois:'', preavisSal:'', cspTaux:PARAMS.cspTaux||'', cspMontant:'', supra:'', remN1:'', droitRetraite:false, taux:'', honoraires:honoDefaut('rc'), honoAuto:true, auteur:PARAMS.auteur||'', arrondi:'', remCcn:'', remAbs:'', notes:'', cal:{...RC_DEFAUT} });
+let S = DEFAULT();
+
+const monthDates = () => {
+  const ref = parseISO(S.dateRef) || parseISO(S.sortie) || new Date();
+  const b = Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1);
+  return Array.from({length:12},(_,k)=>{ const i=12-k; const d=new Date(b); d.setUTCMonth(d.getUTCMonth()-i); return d; });
+};
+const monthLabel = d => d.toLocaleDateString('fr-FR',{month:'long',year:'numeric',timeZone:'UTC'});
+const monthRows = () => { const ds=monthDates(); return S.mois.map((m,i)=>({ ...m, date:toISO(ds[i]), label:monthLabel(ds[i]) })); };
+function inpFromS(){
+  const sal = salaireDepuisMois(S.mois);
+  return { ...S, eco:!!S.eco && S.motif==='lic', csp:!!S.csp, sr12:sal.sr12, sr3:sal.sr3, srLast:sal.srLast, taux:S.taux, honoraires:S.honoraires };
+}
+
+/* ---------- Formulaire ---------- */
+const TXT = ['nom','prenom','emploi','classif','statut','naissance','ageRef','age','entree','sortie','dateRef','supra','remN1','taux','honoraires','arrondi','remCcn','remAbs','notes','auteur','preavisMois','preavisBase','preavisSal','cspTaux','cspMontant','motif','ccn','categorie'];
+
+/* ---------- Choix de la convention : champ avec recherche ---------- */
+const normTxt = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+function ccnLabel(id){ if(id==='none'||!CCN[id]) return 'Code du travail seul (sans convention)'; const m=(CCN_META[id]||{}); return (m.court||CCN[id].nom)+' — IDCC '+id; }
+function ccnOptions(){ return [{id:'none',label:ccnLabel('none'),hay:'code du travail seul sans convention aucune'}].concat(ccnEntries().map(e=>({id:e.id,label:ccnLabel(e.id),hay:normTxt(e.court+' '+CCN[e.id].nom+' '+e.id+' '+(+e.id))}))); }
+function ccnShow(){
+  const q=$('ccn-q'); if(!q) return; q.value=ccnLabel(S.ccn);
+  const m=CCN_META[S.ccn]; $('ccn-info').textContent = S.ccn==='none'||!m ? '' : (m.rang?'Rang '+m.rang+' · ':'')+({modelisee:'barème conventionnel modélisé',partielle:'barème partiellement modélisé',legal:'barème conventionnel non relevé : minimum légal appliqué'}[m.statut]||'');
+}
+function ccnPick(id){ S.ccn=id; $('ccn').value=id; $('ccn').dispatchEvent(new Event('input',{bubbles:true})); ccnShow(); }
+function initCcnSearch(){
+  const opts=ccnOptions(), q=$('ccn-q');
+  $('ccn-dl').innerHTML = opts.map(o=>`<option value="${esc(o.label)}"></option>`).join('');
+  const resolve=()=>{ const v=q.value.trim(); if(!v) return null; const ex=opts.find(o=>o.label===v); if(ex) return ex;
+    const w=normTxt(v).split(/\s+/).filter(Boolean); const hits=opts.filter(o=>w.every(x=>o.hay.includes(x))); return hits.length===1?hits[0]:null; };
+  q.addEventListener('input',()=>{ const ex=opts.find(o=>o.label===q.value); if(ex && ex.id!==S.ccn) ccnPick(ex.id); });
+  q.addEventListener('change',()=>{ const r=resolve(); if(r && r.id!==S.ccn) ccnPick(r.id); else ccnShow(); });
+  q.addEventListener('focus',()=>q.select());
+}
+function initForm(){
+  $('fill-val').value='';
+  $('motif').innerHTML = Object.entries(MOTIFS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  initCcnSearch();
+  push();
+}
+function push(){
+  TXT.forEach(k=>{ const el=$(k); if(el && el.type!=='checkbox') el.value = S[k]==null?'':S[k]; });
+  $('motif').value=motifKey(); $('csp').checked=!!S.csp; $('droitRetraite').checked=!!S.droitRetraite; syncCcnFields(); ccnShow(); renderAbs(); renderMonths(); buildCalCtl();
+}
+function syncCcnFields(){
+  const c = CCN[S.ccn];
+  const hasCat = c && c.categories;
+  $('w-cat').hidden = !hasCat;
+  if(hasCat){
+    $('categorie').innerHTML = c.categories.map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+    if(!c.categories.some(x=>x[0]===S.categorie)) S.categorie=c.categories[0][0];
+    $('categorie').value=S.categorie;
+  }
+  $('w-droit').hidden = S.motif!=='rc';
+  $('w-csp').hidden = !(S.motif==='lic' && S.eco); $('w-csp-f').hidden = !S.csp;
+  const rc = S.motif==='rc';
+  $('ref-lab').textContent = rc ? 'Date de signature' : 'Date de notification';
+}
+function renderAbs(){
+  const c = CCN[S.ccn];
+  $('abs-list').innerHTML = S.absences.length ? S.absences.map((a,i)=>{
+    const def = ABS_BY_ID[a.type]; const ov = c && c.absOverride[a.type];
+    const t = (ov&&ov.t) || def.t;
+    const lab = t==='exclu'?'Déduite':t==='moitie'?'Pour moitié':t==='plafond'?`Retenue ≤ ${ov.max} j`:t==='seuil'?`Retenue si < ${ov.max} j`:'Retenue';
+    return `<div class="abs"><select data-i="${i}" data-k="type">${ABS_TYPES.map(x=>`<option value="${x.id}"${x.id===a.type?' selected':''}>${x.label}</option>`).join('')}</select>
+      <input type="number" min="0" step="1" value="${a.jours}" data-i="${i}" data-k="jours" inputmode="numeric" aria-label="Jours d'absence">
+      <span class="badge ${t==='seuil'?'plafond':t}">${lab}</span><button class="btn ghost sm" data-del="${i}" type="button" aria-label="Supprimer">✕</button></div>`;
+  }).join('') : '<div class="hint" style="margin-bottom:8px">Aucune absence saisie.</div>';
+}
+function renderMonths(){
+  const rows = monthRows();
+  $('mbody').innerHTML = rows.map((m,i)=>`<tr class="${m.inclus===false?'off':''}" data-r="${i}">
+    <td class="lab">${m.label}</td>
+    <td><input type="number" step="0.01" data-m="${i}" data-k="brut" value="${m.brut}" inputmode="decimal"></td>
+    <td><input type="number" step="0.01" data-m="${i}" data-k="recon" value="${m.recon}" inputmode="decimal"></td>
+    <td class="tot" id="mt-${i}">${fmtEur((+m.brut||0)+(+m.recon||0))}</td>
+    <td><input class="txt" data-m="${i}" data-k="note" value="${(m.note||'').replace(/"/g,'&quot;')}" placeholder="Mal, AT, IJSS…"></td>
+    <td style="text-align:center"><input type="checkbox" data-m="${i}" data-k="inclus"${m.inclus===false?'':' checked'}></td></tr>`).join('');
+  updateAvgs();
+}
+function updateAvgs(){
+  const sal = salaireDepuisMois(S.mois);
+  $('avg12').textContent = sal.n ? fmtEur(sal.sr12) : '—';
+  $('avg12n').textContent = sal.n && sal.n<12 ? `sur ${sal.n} mois` : '';
+  $('avg3').textContent = sal.n ? fmtEur(sal.sr3) : '—';
+}
+
+/* ---------- Résultat ---------- */
+let lastText='';
+const fr = iso => iso ? iso.split('-').reverse().join('/') : '';
+function cspRows(r){
+  const c=r.csp; if(!c) return [];
+  const rows=[[`Préavis équivalent (${fmtMois(c.preavis)} mois${c.auto?', minimum légal':''})`,fmtEur(c.icp)]];
+  if(c.plus1an){
+    rows.push(['Contribution à France Travail (brut, 3 mois maximum)',fmtEur(c.ft)]);
+    if(c.ftCharge!==null) rows.push([`Contribution chargée (${c.mode==='paie'?'montant de la paie':'estimation'})`,fmtEur(c.ftCharge)]);
+    if(c.salarie>0) rows.push(['Excédent de préavis à verser au salarié (au-delà de 3 mois)',fmtEur(c.salarie)]);
+  } else rows.push(['Indemnité de préavis à verser au salarié (moins d\'un an d\'ancienneté)',fmtEur(c.salarie)]);
+  rows.push(['Coût total à prévoir (indemnité de licenciement + CSP)',fmtEur(c.cout),true]);
+  return rows;
+}
+function regimeRows(r){
+  const g=r.regime, f=r.fin; if(!g||g.manque) return [];
+  const rows=[['Fraction exonérée d\'impôt sur le revenu',g.irExo],['Fraction imposable',g.irImposable],['Exonérée de cotisations sociales',g.cotisExo],['Soumise à cotisations sociales',g.cotisSoumis],['Base de CSG/CRDS (9,7 %)',g.csgBase],['CSG/CRDS à la charge du salarié',g.csgCrds]];
+  if(g.contrib!==null) rows.push([`Contribution patronale ${Math.round(f.taux*100)} % (sur ${fmtEur(g.contribBase)})`,g.contrib]);
+  return rows;
+}
+function applyHonoAuto(){
+  if(S.honoAuto || S.honoraires===''|| S.honoraires==null){ S.honoraires=honoDefaut(motifKey()); S.honoAuto=true; $('honoraires').value=S.honoraires; }
+}
+function render(){
+  $('hono-hint').textContent = S.honoAuto && S.honoraires!=='' ? 'Montant par défaut pour ce motif (onglet Paramètres), modifiable ici.' : '';
+  const r = compute(inpFromS());
+  $('anc').innerHTML = r.mois||!r.erreur||r.mois===0 ? (parseISO(S.entree)&&parseISO(S.sortie)&&parseISO(S.sortie)>=parseISO(S.entree) ? `Ancienneté retenue <b>${fmtAnc(r.mois)}</b> <span class="hint" style="margin:0">du ${fr(S.entree)} au ${fr(S.sortie)}</span>` : 'Ancienneté : renseignez les dates.') : 'Ancienneté : renseignez les dates.';
+  renderAge(r);
+  renderCal(); renderProc(r);
+  if(!$('pdf-panel').hidden) renderPdfPanel();
+  const box = $('result');
+  if(r.erreur){ box.innerHTML = `<div class="res-top"><div class="res-lab">Indemnité de rupture</div><div class="res-big">—</div></div><div class="err">${r.erreur}</div>`; lastText=''; return; }
+  const winLeg = r.retenu.source==='légale';
+  const motifTxt = MOTIFS[motifKey()];
+  const ccnTxt = S.ccn==='none' ? 'Code du travail' : CCN[S.ccn].nom;
+  let cmp = `<div class="c ${winLeg?'win':''}"><span>Minimum légal (Code du travail)</span><b>${fmtEur(r.legal.eligible?r.legal.montant:0)}</b><small>${r.legal.texte}</small></div>`;
+  if(r.conv) cmp += `<div class="c ${!winLeg?'win':''}"><span>Conventionnelle${r.conv.extra}</span><b>${r.conv.montant?fmtEur(r.conv.montant):'—'}</b><small>${r.conv.lignes.join(' ')}</small></div>`;
+  const steps = r.lignes.map(l=>`<li>${l}</li>`).join('');
+  const f = r.fin;
+  const modeTxt = f.mode==='dizaine' ? 'arrondie à la dizaine supérieure' : f.mode==='euro' ? 'arrondie à l\'euro supérieur' : 'sans arrondi';
+  let fin = `<div><span>Indemnité retenue (${modeTxt})</span><b>${fmtEur(f.retenuArrondi)}</b></div>`;
+  if(f.supra>0) fin += `<div><span>Supra-légale</span><b>${fmtEur(f.supra)}</b></div><div class="tot"><span>Total</span><b>${fmtEur(f.total)}</b></div>`;
+  if(f.taux!==null) fin += `<div><span>Contribution patronale ${Math.round(f.taux*100)} %</span><b>${fmtEur(f.contrib)}</b></div>`;
+  if(f.honoraires!==null && !isNaN(f.honoraires)) fin += `<div><span>Honoraires</span><b>${fmtEur(f.honoraires)}</b></div>`;
+  let regHtml='', regTxt=[];
+  if(r.regime){
+    const g=r.regime;
+    if(g.manque){ regHtml=`<div class="sec"><h3>Régime social et fiscal</h3><div class="hint">Renseignez la rémunération brute de l'année civile précédente (encadré 5) pour afficher les fractions exonérées et soumises.</div></div>`; }
+    else {
+      const rows=regimeRows(r);
+      regHtml=`<div class="sec"><h3>Régime social et fiscal</h3><div class="kvl">${rows.map(([l,v])=>`<div><span>${l}</span><b>${fmtEur(v)}</b></div>`).join('')}</div>
+        ${g.supra>0?`<div class="hint" style="margin-top:6px">Supra-légale de ${fmtEur(g.supra)} : elle entre dans la masse et suit les mêmes seuils ; la part qui dépasse l'indemnité légale ou conventionnelle supporte la CSG/CRDS.</div>`:''}
+        <details style="margin-top:8px"><summary class="hint" style="cursor:pointer">Détail des règles appliquées (PASS ${g.annee} : ${fmtEur(g.pass)})</summary><ul class="plain" style="font-size:12.5px;margin-top:6px">${g.lignes.map(l=>`<li>${l}</li>`).join('')}${g.alertes.map(l=>`<li>${l}</li>`).join('')}</ul></details>
+        <div class="hint" style="margin-top:6px">Cotisations salariales et impôt sur le revenu non calculés (taux et foyer fiscal propres à chaque salarié). Hors PSE et mandataires sociaux. À valider sur le BOSS.</div></div>`;
+      regTxt=['','Régime social et fiscal :',...rows.map(([l,v])=>`- ${l} : ${fmtEur(v)}`)];
+    }
+  }
+  let cspHtml='', cspTxt=[];
+  if(r.csp){
+    const c=r.csp, rows=cspRows(r);
+    cspHtml=`<div class="sec"><h3>Contrat de sécurisation professionnelle (CSP)</h3><div class="kvl">${rows.map(([l,v,b])=>`<div${b?' class="tot"':''}><span>${l}</span><b>${v}</b></div>`).join('')}</div>
+      <ul class="plain" style="font-size:12.5px;margin-top:6px">${c.lignes.map(l=>`<li>${l}</li>`).join('')}</ul>
+      <details style="margin-top:6px"><summary class="hint" style="cursor:pointer">Sources du calcul du CSP</summary><ul class="plain" style="font-size:12.5px;margin-top:6px">${CSP_SOURCES.map(s=>`<li><a href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a></li>`).join('')}</ul></details></div>`;
+    cspTxt=['','CSP :',...rows.map(([l,v])=>`- ${l} : ${v}`)];
+  }
+  const formule = `Légal : MAX(moy.12 ; moy.3) × (${r.exprLegal})` + (r.exprConv ? `\nCCN : ${r.conv.baseKey==='sr12'?'moy.12':r.conv.baseKey==='srMax3'?'MAX(moy.12 ; moy.3 ; dernier salaire)':'MAX(moy.12 ; moy.3)'} × (${r.exprConv})` : '');
+  const al = r.alertes.map((a,i)=>`<div class="alert${i===r.alertes.length-1?' neutral':''}">${a}</div>`).join('');
+  box.innerHTML = `
+   <div class="res-top"><div class="res-lab">${motifTxt}</div>
+     <div class="res-big">${fmtEur(f.total)}</div>
+     <div class="res-sub">${f.retenuArrondi? `Base ${r.retenu.source}${f.supra>0?' + supra-légale':''}` : 'Aucune indemnité due selon ces données'} · ${ccnTxt}</div></div>
+   ${(()=>{ if(S.ccn==='none') return ''; const pi=profilInfo(S.ccn,motifKey()); return pi?`<div class="prof"><span class="badge ${pi.cls}">${pi.lab}</span><span class="hint">${pi.det}</span></div>`:''; })()}
+   <div class="cmp">${cmp}</div>
+   <div class="sec"><h3>Montants</h3><div class="kvl">${fin}</div><div class="formula">${formule.replace(/\n/g,'<br>')}</div></div>
+   ${regHtml}
+   ${cspHtml}
+   <div class="sec"><h3>Détail du calcul</h3><ol class="steps">${steps}<li>${r.legal.texte}</li>${r.conv?r.conv.lignes.map(l=>`<li>${l}</li>`).join(''):''}<li><b>Retenu : ${fmtEur(r.retenu.montant)}</b> (${r.retenu.source})</li></ol></div>
+   <div class="sec"><h3>Points d'attention</h3><div class="alerts">${al}</div></div>
+   <div class="sec"><button class="btn primary" id="copy" type="button">Copier le détail</button><span class="hint" id="copy-msg" style="margin-left:8px"></span><textarea class="copybox" id="copybox" hidden readonly></textarea></div>`;
+  lastText = [`${S.nom||''} ${S.prenom||''} — ${motifTxt}`.trim(), ...((S.auteur||'').trim()?['Calcul établi par '+S.auteur.trim()]:[]), `Convention : ${ccnTxt}`, `Du ${fr(S.entree)} au ${fr(S.sortie)}`, '',
+    ...r.lignes, r.legal.texte, ...(r.conv?r.conv.lignes:[]), '', formule, '', `Indemnité retenue : ${fmtEur(f.retenuArrondi)}`,
+    ...(f.supra>0?[`Supra-légale : ${fmtEur(f.supra)}`,`Total : ${fmtEur(f.total)}`]:[]),
+    ...(f.taux!==null?[`Contribution patronale ${Math.round(f.taux*100)} % : ${fmtEur(f.contrib)}`]:[]),
+    ...regTxt, ...cspTxt,
+    '', 'Points d\'attention :', ...r.alertes.map(a=>'- '+a),
+    ...((S.notes||'').trim()?['','Notes :',(S.notes||'').trim()]:[])].join('\n');
+}
+const calCfg = () => Object.assign({}, RC_DEFAUT, S.cal||{});
+const CAL_MODES = [['sig','Signature'],['ent','Entretien'],['ret','Fin de rétractation'],['rup','Rupture souhaitée']];
+const frL = iso => iso ? JOURS[parseISO(iso).getUTCDay()]+' '+fr(iso) : '—';
+function buildCalCtl(){
+  const c = calCfg();
+  $('cal-seg').innerHTML = CAL_MODES.map(([v,l])=>`<button type="button" data-cmode="${v}" class="${c.mode===v?'on':''}" aria-pressed="${c.mode===v}">${l}</button>`).join('');
+  $('cal-in').innerHTML = c.mode==='sig'
+    ? `<div class="hint">Date de signature : celle de l'encadré 2 (« Dates et ancienneté »).</div>`
+    : c.mode==='ent'
+      ? `<div class="cal-row"><label class="f"><span>Date de l'entretien</span><input type="date" data-ck="ent" value="${esc(c.ent)}"></label><label class="f"><span>Délai jusqu'à la signature (jours)</span><input data-ck="dEnt" inputmode="numeric" value="${esc(c.dEnt)}"></label></div>`
+      : `<label class="f"><span>${c.mode==='ret'?'Date de fin du délai de rétractation':'Date de rupture souhaitée (au plus tard)'}</span><input type="date" data-ck="${c.mode==='ret'?'d_ret':'d_rup'}" value="${esc(c.mode==='ret'?c.d_ret:c.d_rup)}"></label>`;
+  $('cal-opts').innerHTML = `
+    <label class="chk"><input type="checkbox" data-ck="sigOuvre"${c.sigOuvre!==false?' checked':''}><span>Signature un jour ouvré (lundi au vendredi, hors fériés)</span></label>
+    <label class="chk"><input type="checkbox" data-ck="depOuvre"${c.depOuvre?' checked':''}><span>Dépôt de la demande un jour ouvré (lundi au vendredi, hors fériés)</span></label>
+    <label class="chk"><input type="checkbox" data-ck="am"${c.am?' checked':''}><span>Jours fériés d'Alsace-Moselle (Vendredi saint, 26 décembre)</span></label>
+    <div class="inl"><label>Marge avant le dépôt <input data-ck="mDep" inputmode="numeric" value="${esc(c.mDep)}"> j</label>
+      <label>Réception après l'envoi <input data-ck="post" inputmode="numeric" value="${esc(c.post)}"> j <span class="hint">(0 avec TéléRC)</span></label>
+      <label>Marge avant la rupture <input data-ck="mRup" inputmode="numeric" value="${esc(c.mRup)}"> j</label></div>`;
+}
+function calStepsHtml(c){
+  const o=c.options, li=(lbl,iso,sub,cls)=>`<li class="${cls||''}"><span>${lbl}</span><b>${frL(iso)}</b>${sub?`<span class="sb">${sub}</span>`:''}</li>`;
+  const marge = (n)=>n?'avec '+plurJ(n,'jour')+' de marge':'';
+  const fer = c.feriesInstruction.length ? ' · férié(s) non compté(s) : '+c.feriesInstruction.map(([d,n])=>n+' '+fr(d).slice(0,5)).join(', ') : '';
+  return `<ol class="calsteps">
+    ${c.entretien?li('Entretien',c.entretien,''):''}
+    ${c.signature?li('Signature de la convention',c.signature, c.signatureReportDepuis?'reportée au jour ouvré suivant ('+frL(c.signatureReportDepuis)+' non ouvré)':(c.signatureAuPlusTard&&o.sigOuvre?'dernier jour ouvré possible':''),'key'):''}
+    ${c.retractationDebut?li('Délai de rétractation',c.retractationDebut,'15 jours calendaires, du '+fr(c.retractationDebut).slice(0,5)+' au '+fr(c.retractationFin)+(c.retractationFin!==c.retractationBrute?' (15e jour le '+frL(c.retractationBrute)+' : prorogé au jour ouvrable suivant)':'')):''}
+    ${li('Fin de la rétractation (minuit)',c.retractationFin,'','key')}
+    ${li('Envoi de la demande d\'homologation, au plus tôt',c.envoi,(marge(o.mDep)||'lendemain de la fin de rétractation')+(c.envoi!==c.depot0?' · décalé au jour ouvré suivant':''))}
+    ${o.post?li('Réception par l\'administration',c.reception,plurJ(o.post,'jour')+' après l\'envoi'):''}
+    ${li('Fin de l\'instruction (homologation tacite)',c.instructionFin,'15 jours ouvrables à partir du '+fr(c.instructionDebut).slice(0,5)+fer+(c.instructionFin!==c.instructionBrute?' · 15e jour le '+frL(c.instructionBrute)+', prorogé':''),'key')}
+    ${li('Date de rupture au plus tôt',c.ruptureAuPlusTot,marge(o.mRup)||'lendemain de l\'homologation','key last')}</ol>`;
+}
+function renderAge(r){
+  const c = CCN[S.ccn], sens = c && c.ageMajoration;
+  $('age').disabled = r.ageSource==='naissance';
+  const quand = S.ageRef==='dateRef' ? 'à la signature / notification' : 'à la fin de contrat';
+  $('age-info').innerHTML = r.ageSource==='naissance' ? `Âge retenu : <b>${r.age} ans</b> (${quand}, le ${fr(r.ageDate)}).` + (sens?' Cette convention applique une règle liée à l\'âge.':'')
+    : r.ageSource==='saisi' ? `Âge saisi : <b>${r.age} ans</b>.` + (sens?' Cette convention applique une règle liée à l\'âge : la date de naissance est plus fiable.':'')
+    : (sens ? '<b>Cette convention applique une règle liée à l\'âge (majoration) :</b> renseignez la date de naissance.' : 'La date de naissance sert aux conventions qui prévoient une règle liée à l\'âge.');
+}
+function renderCal(){
+  const card=$('cal-card');
+  if(S.motif!=='rc'){ card.hidden=true; return; }
+  if(card.hidden){ card.hidden=false; buildCalCtl(); }
+  const cfg=calCfg(), out=$('cal-out'), c=calendrierRC(S.dateRef, cfg);
+  if(!c || c.erreur){
+    out.innerHTML = `<div class="hint" style="margin-top:8px">${c&&c.erreur?esc(c.erreur):(cfg.mode==='sig'?'Renseignez la date de signature (encadré 2).':'Saisissez la date ci-dessus.')}</div>`; return;
+  }
+  const early = S.sortie && S.sortie < c.ruptureAuPlusTot;
+  const acts=[];
+  if(c.signature && c.signature!==S.dateRef) acts.push(`<button class="btn sm" type="button" data-capply="sig">Reporter la signature (${fr(c.signature)}) dans la fiche</button>`);
+  if(c.ruptureAuPlusTot && c.ruptureAuPlusTot!==S.sortie) acts.push(`<button class="btn sm" type="button" data-capply="rup">Prendre la rupture au plus tôt (${fr(c.ruptureAuPlusTot)}) comme fin de contrat</button>`);
+  out.innerHTML = `${c.notes.map(n=>`<div class="alert" style="margin-top:10px">${esc(n)}</div>`).join('')}
+    ${calStepsHtml(c)}
+    ${early?`<div class="alert" style="margin-top:10px">La date de fin de contrat saisie (${fr(S.sortie)}) précède la date de rupture au plus tôt.</div>`:''}
+    ${acts.length?`<div class="cal-act">${acts.join('')}</div>`:''}
+    <div class="cal-note">Règles : rétractation de 15 jours calendaires à partir du lendemain de la signature (L1237-13) ; instruction de 15 jours ouvrables à partir du lendemain de la réception (L1237-14) ; un délai qui expire un samedi, un dimanche ou un jour férié est prorogé au premier jour ouvrable suivant (R1231-1). ${cfg.am?'Jours fériés d\'Alsace-Moselle inclus.':'Jours fériés de France métropolitaine.'} Calendrier indicatif : <a href="https://www.telerc.travail.gouv.fr/simulateur/calendrier" target="_blank" rel="noopener">contrôler avec le simulateur TéléRC ↗</a></div>`;
+}
+
+/* ---------- calendrier de la procédure (hors rupture conventionnelle) ---------- */
+const PROC_TITRES = { lic:'Calendrier du licenciement', inaptNP:'Calendrier du licenciement pour inaptitude', inaptP:'Calendrier du licenciement pour inaptitude', miseRet:'Calendrier de la mise à la retraite', departRet:'Calendrier du départ à la retraite' };
+function procCfg(r){
+  const p=Object.assign({}, S.proc||{}), m=S.motif;
+  const notifDirecte = m==='miseRet'||m==='departRet';
+  return Object.assign({}, p, { d0: notifDirecte ? S.dateRef : p.d0, eco: !!S.eco && m==='lic', csp: !!S.csp && !!S.eco && m==='lic',
+    preavisMois: S.preavisMois, moisAnc: r&&r.mois!=null ? r.mois : 0 });
+}
+function buildProcIn(){
+  const m=S.motif, p=S.proc||{}, f=(k,l,type)=>`<label class="f"><span>${l}</span><input type="date" data-pk="${k}" value="${esc(p[k]||'')}"></label>`;
+  const rows=[];
+  if(m==='lic'||m==='inaptNP'||m==='inaptP'){ rows.push(f('d0','Convocation à l\'entretien (1re présentation ou remise)')); rows.push(f('ent','Entretien préalable (facultatif)')); rows.push(f('notif','Notification du licenciement (facultatif)')); }
+  if(m==='inaptNP'||m==='inaptP') rows.push(f('avis','Avis d\'inaptitude (facultatif)'));
+  if(m==='miseRet') rows.push(f('anniv','Anniversaire concerné (si moins de 70 ans, facultatif)'));
+  const cadre = (m==='lic'&&S.eco) ? `<label class="chk"><input type="checkbox" data-pk="cadre"${p.cadre?' checked':''}><span>Salarié cadre (15 jours ouvrables au lieu de 7)</span></label>` : '';
+  const notifHint = (m==='miseRet'||m==='departRet') ? `<div class="hint">Date de notification : celle de l'encadré 2 (« Dates et ancienneté »).</div>` : '';
+  $('proc-in').innerHTML = `${notifHint}${rows.length?`<div class="cal-row">${rows.join('')}</div>`:''}<div class="cal-opts">${cadre}<label class="chk"><input type="checkbox" data-pk="am"${p.am?' checked':''}><span>Jours fériés d'Alsace-Moselle (Vendredi saint, 26 décembre)</span></label></div>`;
+}
+function procStepsHtml(c){
+  return `<ol class="calsteps">${c.etapes.map(e=>`<li class="${e.key?'key':''}"><span>${esc(e.label)}</span><b>${frL(e.iso)}</b>${e.detail?`<span class="sb">${esc(e.detail)}</span>`:''}</li>`).join('')}</ol>`;
+}
+let _procMotif=null;
+function renderProc(r){
+  const card=$('proc-card');
+  if(S.motif==='rc'){ card.hidden=true; _procMotif=null; return; }
+  if(card.hidden || _procMotif!==S.motif+(S.eco?'e':'')){ card.hidden=false; _procMotif=S.motif+(S.eco?'e':''); $('proc-h').textContent=PROC_TITRES[S.motif]+(S.motif==='lic'&&S.eco?' économique':''); buildProcIn(); }
+  const cfg=procCfg(r), out=$('proc-out'), c=calendrierProcedure(S.motif,cfg);
+  if(!c){ out.innerHTML=`<div class="hint" style="margin-top:8px">${S.motif==='miseRet'||S.motif==='departRet'?'Renseignez la date de notification (encadré 2).':'Saisissez la date de convocation à l\'entretien.'}</div>`; return; }
+  const acts=[];
+  if((S.motif==='lic'||S.motif==='inaptNP'||S.motif==='inaptP') && c.etapes.length){ const n=c.etapes.find(e=>/^Notification du licenciement/.test(e.label)); if(n && n.iso!==S.dateRef) acts.push(`<button class="btn sm" type="button" data-papply="notif">Reporter la notification (${fr(n.iso)}) dans la date de référence</button>`); }
+  if(c.fin && c.fin!==S.sortie) acts.push(`<button class="btn sm" type="button" data-papply="fin">Prendre la fin de contrat calculée (${fr(c.fin)})</button>`);
+  const pre = (S.motif==='lic'||S.motif==='miseRet'||S.motif==='departRet') && (S.preavisMois===''||S.preavisMois==null) ? `<div class="cal-note">Préavis retenu : ${fmtMois(c.preavisMois)} mois (durée légale selon l'ancienneté ; renseignez la durée conventionnelle dans « Durée du préavis » si elle est plus longue).</div>` : '';
+  out.innerHTML = `${c.notes.filter(n=>!/^Les jours fériés/.test(n)&&/non respecté|antérieure|plus d'un mois|précède/.test(n)).map(n=>`<div class="alert" style="margin-top:10px">${esc(n)}</div>`).join('')}
+    ${procStepsHtml(c)}${acts.length?`<div class="cal-act">${acts.join('')}</div>`:''}${pre}
+    <div class="cal-note">${c.notes.filter(n=>!/non respecté|antérieure|plus d'un mois|précède/.test(n)).map(esc).join(' ')} Calendrier indicatif (dates au plus tôt), à contrôler avec les dispositions conventionnelles et la situation du salarié.</div>`;
+}
+function initProc(){
+  const card=$('proc-card');
+  const upd=e=>{ const k=e.target.dataset.pk; if(!k) return; S.proc=Object.assign({},S.proc||{}); S.proc[k]=e.target.type==='checkbox'?e.target.checked:e.target.value; render(); };
+  card.addEventListener('input',upd); card.addEventListener('change',upd);
+  card.addEventListener('click',e=>{ const a=e.target.closest('[data-papply]'); if(!a) return;
+    const c=calendrierProcedure(S.motif,procCfg(compute(inpFromS()))); if(!c) return;
+    if(a.dataset.papply==='fin'){ S.sortie=c.fin; $('sortie').value=S.sortie; }
+    else { const n=c.etapes.find(x=>/^Notification du licenciement/.test(x.label)); if(!n) return; S.dateRef=n.iso; $('dateRef').value=S.dateRef; }
+    renderMonths(); render(); });
+}
+
+function initCal(){
+  const card=$('cal-card');
+  card.addEventListener('click',e=>{
+    const m=e.target.closest('[data-cmode]'); if(m){ S.cal=calCfg(); S.cal.mode=m.dataset.cmode; buildCalCtl(); renderCal(); return; }
+    const a=e.target.closest('[data-capply]'); if(!a) return;
+    const c=calendrierRC(S.dateRef, calCfg()); if(!c||c.erreur) return;
+    if(a.dataset.capply==='sig'){ S.dateRef=c.signature; $('dateRef').value=S.dateRef; renderMonths(); }
+    else { S.sortie=c.ruptureAuPlusTot; $('sortie').value=S.sortie; renderMonths(); }
+    render();
+  });
+  const upd=e=>{ const k=e.target.dataset.ck; if(!k) return; S.cal=calCfg(); S.cal[k]=e.target.type==='checkbox'?e.target.checked:e.target.value; renderCal(); };
+  card.addEventListener('input',upd); card.addEventListener('change',upd);
+}
+
+/* ---------- Règles & tests ---------- */
+const VKEY='indemnites-validation-v1';
+function loadV(){ try{ return JSON.parse(localStorage.getItem(VKEY)||'{}'); }catch(e){ return {}; } }
+function saveV(v){ try{ localStorage.setItem(VKEY,JSON.stringify(v)); }catch(e){} }
+const RS = { q:'', f:'all', sel:'cdt' };
+const FILTERS = [['all','Toutes'],['top','Top 70'],['modelisee','Barème modélisé'],['partielle','Partielles'],['legal','Légal appliqué'],['valid','Validées'],['secu','À sécuriser']];
+function ccnEntries(){
+  return Object.keys(CCN).map(id=>{ const m=CCN_META[id]||{}; return { id, court:m.court||CCN[id].nom, rang:m.rang==null?null:m.rang, statut:m.statut||'partielle' }; })
+    .sort((a,b)=>((a.rang==null)-(b.rang==null)) || (a.rang-b.rang) || a.id.localeCompare(b.id));
+}
+/* Sources du CSP (licenciement économique), consultées le 21/11/2026 */
+const CSP_SOURCES = [
+  ['France Travail — CSP : réponses aux employeurs (contribution, ancienneté, charges)','https://www.francetravail.fr/employeur/vos-declarations-et-cotisations/la-fin-de-vos-contrats-de-travai/proposer-le-csp--les-reponses-au.html'],
+  ['Unédic — proposer le CSP : obligations de l\'employeur (3 mois, charges, échéance de paiement)','https://www.unedic.org/l-assurance-chomage-et-vous/employeur-du-secteur-prive/mes-demarches/je-propose-le-csp-a-un-salarie-quelles-sont-mes-obligations'],
+  ['Service-public — CSP : indemnités versées au salarié','https://www.service-public.gouv.fr/particuliers/vosdroits/F13819?lang=fr'],
+  ['Justice.fr — indemnité compensatrice de préavis, cas du CSP','https://www.justice.fr/fiche/indemnite-compensatrice-preavis-licenciement-demission'],
+  ['SVP — le préavis versé dans le cadre du CSP n\'ouvre pas droit à congés payés','https://www.svp.com/note-expert/ressources-humaines/droit-social-emploi-recrutement/en-cas-de-versement-d-une-indemnite-compensatrice-de-preavis-a-un-salarie-adherant-au-contrat-de-securisation-professionnelle-csp-faut-il-calculer-et-verser-une-indemnite-compensatrice-de-conges-payes-sur-ce-preavis'],
+  ['Paie-News — indemnité compensatrice de préavis : CSP, 3 mois, sans congés payés','https://www.paie-news.fr/Rupture-Contrat-Travail/Indemnit%C3%A9-compensatrice-preavis.html'],
+  ['calculdesalaire.fr — préavis ordinaire (avec 10 % de congés payés), pour comparaison','https://calculdesalaire.fr/calcul-indemnite-compensatrice-preavis-salaire.html'],
+  ['Voltaire Avocats — Cass. soc. 18 mars 2026, n° 24-21.643 : contribution due (L1233-69)','https://www.voltaire-avocats.com/fr/contrat-de-securisation-professionnelle-la-contribution-de-lemployeur-reste-due-meme-si-le-salarie-retrouve-un-emploi/']
+];
+(()=>{
+  const cdt = RULES_DOC.find(d=>d.id==='cdt');
+  cdt.items.push(['Licenciement économique : CSP','Salarié d\'au moins 1 an d\'ancienneté : l\'employeur verse à France Travail l\'indemnité de préavis que le salarié aurait perçue (rémunération qu\'il aurait reçue en exécutant le préavis), dans la limite de 3 mois, majorée des cotisations et contributions obligatoires ; l\'excédent est versé au salarié. Moins d\'un an : préavis dû au salarié, aucune contribution. Pas de congés payés (10 %) sur ce préavis équivalent ; l\'ICCP des congés non pris est due au solde de tout compte. Contribution due même si le salarié retrouve un emploi (Cass. soc. 18/03/2026). Paiement à France Travail au plus tard le 25 du 2e mois civil suivant le début du CSP.']);
+  CSP_SOURCES.forEach(s=>cdt.sources.push(s));
+  const c787 = RULES_DOC.find(d=>d.id==='0787');
+  if(c787){ c787.sources.push(['Tissot — CCN experts-comptables, rupture (départ volontaire : dernier salaire mensuel)','https://www.editions-tissot.fr/acheter-convention-collective/ccn-cabinets-experts-comptables-rupture-contrat'],['Fiche-paie.fr — départ et mise à la retraite IDCC 0787 (art. 6.2.4.1)','https://fiche-paie.fr/convention-collective/experts-comptables-commissaires-aux-comptes-0787/depart-retraite'],['Payfit — retraite dans la CCN des experts-comptables (exemple chiffré)','https://payfit.com/fr/ccn/cabinets-experts-comptables/retraite/']); }
+})();
+const SRC_HOSTS = {
+  n1:['legifrance.gouv.fr','code.travail.gouv.fr','boss.gouv.fr','securite-sociale.fr','service-public.fr','justice.fr','francetravail.org','travail-emploi.gouv.fr','telerc.travail.gouv.fr','urssaf.fr','data.gouv.fr','dila.gouv.fr','courdecassation.fr','service-public.gouv.fr','francetravail.fr','unedic.org'],
+  n2:['svp.com','paie-news.fr','editions-tissot.fr','voltaire-avocats.com','fiche-paie.fr','payfit.com','calculdesalaire.fr','syntec.fr','legisocial.fr','ffbatiment.fr','capeb.fr','umih.fr','uimm.fr']
+};
+const TIER_LABEL = { n1:'Officiel', n2:'Branche / synthèse', n3:'À remplacer', gen:'Générique' };
+function tierOf(url){
+  let u; try{ u=new URL(url); }catch(e){ return 'n3'; }
+  const h=u.hostname.replace(/^www\./,'');
+  const inList = l => l.some(x=>h===x||h.endsWith('.'+x));
+  if(inList(SRC_HOSTS.n1)) return (u.pathname==='/'||u.pathname==='') ? 'gen' : 'n1';
+  if(inList(SRC_HOSTS.n2)) return 'n2';
+  return 'n3';
+}
+function allSources(r){
+  const refs=(CDTN_REFS[r.id]||[]).map(x=>['Légifrance — '+x[0]+' (article cité par le Code du travail numérique)',x[1]]);
+  const have=new Set(r.sources.map(s=>s[1]));
+  return [...refs.filter(x=>!have.has(x[1])), ...r.sources];
+}
+function needsSecuring(id){
+  const c=CROISEMENT.data[id]; const r=RULES_DOC.find(d=>d.id===id);
+  if(c && (c.st==='ecart'||c.st==='non_couvert')) return true;
+  if(c && (c.st==='concordant'||c.st==='neutre'||c.st==='assume')) return false;
+  const tiers=r?allSources(r).map(s=>tierOf(s[1])):[];
+  return !tiers.includes('n1');
+}
+const fmtE = n => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(n);
+function cxHtml(id){
+  const c=CROISEMENT.data[id]; if(!c) return '';
+  const head=`<b>Recoupement avec le simulateur officiel du Code du travail numérique</b> <span style="color:var(--muted)">— ${CROISEMENT.date}</span>`;
+  let body='';
+  if(c.st==='concordant') body=`<span class="badge ok">Concordant</span><p>${c.n} cas comparés (licenciement et rupture conventionnelle) : aucun écart de montant.</p>`;
+  else if(c.st==='neutre') body=`<span class="badge info">Écarts sans effet sur le montant retenu</span><p>${c.n} cas comparés : le barème conventionnel affiché diffère ou n'est pas modélisé, mais le minimum légal l'emporte dans tous les cas de la grille. À corriger pour fiabiliser l'affichage.</p>`;
+  else if(c.st==='assume') body=`<span class="badge info">Écart assumé, texte relu</span><p>${c.n} cas comparés : le moteur suit le texte de la convention sur Légifrance et s'écarte du simulateur officiel dans ${c.ex.length} cas de la grille.</p><p>${c.note}</p><ul>${c.ex.map(e=>`<li>${e.an} ans, ${e.age} ans${e.cat?', catégorie « '+e.cat+' »':''} : moteur ${fmtE(e.moi)} — officiel ${fmtE(e.off)}</li>`).join('')}</ul>`;
+  else if(c.st==='ecart') body=`<span class="badge prov">Écarts à arbitrer</span><p>${c.n} cas comparés : le moteur et le simulateur officiel donnent des montants retenus différents.</p><ul>${c.ex.map(e=>`<li>${e.an} ans, ${e.age} ans${e.cat?', catégorie « '+e.cat+' »':''} : moteur ${fmtE(e.moi)} — officiel ${fmtE(e.off)}${e.nm?' (barème conventionnel non modélisé : le moteur retient le légal)':''}</li>`).join('')}</ul>`;
+  else body=`<span class="badge info">Non couverte par le simulateur officiel</span><p>Cette convention ne figure pas dans les modèles du Code du travail numérique : le barème doit être confronté directement au texte de la convention sur Légifrance.</p>`;
+  if(c.eco) body+=`<p>Pour le motif « Licenciement pour motif économique » : ${c.eco.n} cas comparés, ${c.eco.ko?c.eco.ko+' écart(s)'+(c.st==='assume'?' (ceux de l\'écart assumé ci-dessus)':''):'aucun écart'}.</p>`;
+  const foot = c.st==='non_couvert' ? '' : `<p style="color:var(--muted)">Périmètre : licenciement et rupture conventionnelle (grille : ${CROISEMENT.grille}). ${CROISEMENT.retraite?`Départ et mise à la retraite : volet légal recoupé (${CROISEMENT.retraite.n} cas, ${CROISEMENT.retraite.ko} écart) ; le simulateur officiel ne propose pas de volet conventionnel pour la retraite, les barèmes conventionnels de retraite restent à valider sur les textes.`:'Le départ et la mise à la retraite ne sont pas recoupés.'} Version des règles officielles : ${CROISEMENT.version}.</p>`;
+  return `<div class="cx">${head}<div style="margin-top:6px">${body}</div>${foot}</div>`;
+}
+
+/* ---------- Indicateur légal / conventionnel par convention et par motif (grille de cas, voir gen-profils.js) ---------- */
+const PROFIL_LAB = { legal:['Légal toujours plus favorable','prov'], egal:['Conventionnel égal au légal','info'], conv:['Conventionnel toujours supérieur ou égal au légal','ok'], cas:['Au cas par cas','compte'], nd:['Non déterminé (barème conventionnel non modélisé)','prov'] };
+function profilInfo(id,m){
+  const p=(typeof PROFILS!=='undefined'&&PROFILS[id]&&PROFILS[id][m])||null; if(!p) return null;
+  const an=x=>{ const y=x/12; return Number.isInteger(y)?y+' an'+(y>1?'s':''):fmtMois(y)+' an'; };
+  let det='';
+  if(p.c==='cas') det = 'Le conventionnel l\'emporte dans certains cas (à partir de ~'+an(p.a)+' d\'ancienneté dans la grille testée), le légal dans les autres : dépend de l\'ancienneté, de l\'âge, de la catégorie ou du salaire.';
+  else if(p.c==='conv') det = 'Supérieur au légal à partir de ~'+an(p.a)+' d\'ancienneté dans la grille testée, égal en deçà.';
+  else if(p.c==='legal') det = 'Le barème conventionnel modélisé ne dépasse jamais le minimum légal : le calcul légal s\'applique.';
+  else if(p.c==='egal') det = 'Le barème conventionnel modélisé est identique au calcul légal.';
+  else det = 'Barème conventionnel non relevé ou non modélisé pour ce motif : seul le minimum légal est calculé.';
+  if(p.p) det += ' Indicateur établi sur les cas modélisés seulement.';
+  return { cls:PROFIL_LAB[p.c][1], lab:PROFIL_LAB[p.c][0], det, c:p.c };
+}
+const PROFIL_NOTE = 'Indicateur établi par balayage d\'une grille de cas (ancienneté de 9 mois à 40 ans, âges 40, 57 et 63 ans, catégories, assiettes 12 et 3 mois, motif économique) sur les barèmes modélisés : il ne remplace pas le calcul du dossier.';
+function renderRules(){
+  const v=loadV(), q=RS.q.trim().toLowerCase().replace(/^idcc\s*/,'');
+  const all=ccnEntries();
+  const ok = e => RS.f==='all' || (RS.f==='top' ? e.rang!=null : RS.f==='valid' ? !!v[e.id] : RS.f==='secu' ? needsSecuring(e.id) : e.statut===RS.f);
+  const match = e => !q || (e.id+' '+String(+e.id)+' '+e.court+' '+CCN[e.id].nom).toLowerCase().includes(q);
+  const items=all.filter(e=>ok(e)&&match(e));
+  $('rfilters').innerHTML = FILTERS.map(([k,l])=>`<button type="button" data-f="${k}" class="${RS.f===k?'on':''}" aria-pressed="${RS.f===k}">${l}</button>`).join('');
+  const cdtOn = RS.sel==='cdt';
+  $('rlist').innerHTML =
+    `<button type="button" class="rm-item${cdtOn?' on':''}" data-sel="cdt"><span class="rk"></span><span><b>Code du travail</b><i>socle légal</i></span><span class="dot socle"></span></button>`
+    + (items.length ? items.map(e=>`<button type="button" class="rm-item${RS.sel===e.id?' on':''}" data-sel="${e.id}" title="${STATUT_LABEL[e.statut]}">
+        <span class="rk">${e.rang==null?'':e.rang}</span><span><b>${e.court}</b><i>IDCC ${e.id}${needsSecuring(e.id)?' · à sécuriser':''}</i></span><span class="dot ${e.statut}${v[e.id]?' val':''}"></span></button>`).join('')
+      : '<div class="rempty">Aucune convention ne correspond.</div>')
+    + `<div class="rlegend" aria-hidden="true"><span><i class="dot modelisee"></i>modélisé</span><span><i class="dot partielle"></i>partiel</span><span><i class="dot legal"></i>légal appliqué</span><span><i class="dot modelisee val"></i>validée</span></div>`;
+  const r = RULES_DOC.find(d=>d.id===RS.sel) || RULES_DOC[0];
+  const meta = CCN_META[r.id];
+  const valid = !r.provisoire || v[r.id];
+  const stBadge = meta ? `<span class="badge ${meta.statut==='modelisee'?'ok':meta.statut==='legal'?'prov':'info'}">${STATUT_LABEL[meta.statut]}</span>` : '';
+  $('rules').innerHTML = `<div class="card rule-card"><div class="rule-head"><h3>${r.titre}</h3>
+      ${meta&&meta.rang?`<span class="badge compte">Rang indicatif ${meta.rang} / 50</span>`:''}${stBadge}
+      <span class="badge ${valid?'ok':'prov'}">${r.provisoire?(valid?'Validée':'Provisoire — à valider'):'Socle légal'}</span>
+      ${r.provisoire?`<label class="sp" style="display:flex;gap:6px;align-items:center;font-size:12.5px"><input type="checkbox" data-valid="${r.id}"${v[r.id]?' checked':''}>Validée par moi</label>`:''}</div>
+      <table class="kv"><tbody>${r.items.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join('')}</tbody></table>
+      <div style="margin-top:10px;font-size:12.5px"><b>Points ambigus</b><ul class="plain">${r.ambigu.map(a=>`<li>${a}</li>`).join('')}</ul></div>
+      ${CCN[r.id]&&CCN[r.id].notes.length?`<div style="margin-top:10px;font-size:12.5px"><b>Notes de modélisation</b><ul class="plain">${CCN[r.id].notes.map(a=>`<li>${a}</li>`).join('')}</ul></div>`:''}
+      ${CCN[r.id]?`<div style="margin-top:10px;font-size:12.5px"><b>Légal ou conventionnel : lequel l'emporte ?</b><table class="kv"><tbody>${['rc','lic','licEco','inaptNP','inaptP','miseRet','departRet'].map(m=>{ const pi=profilInfo(r.id,m); return pi?`<tr><td>${MOTIFS[m]}</td><td><span class="badge ${pi.cls}">${pi.lab}</span><div class="hint" style="margin-top:3px">${pi.det}</div></td></tr>`:''; }).join('')}</tbody></table><div class="hint">${PROFIL_NOTE}</div></div>`:''}
+      ${r.id==='cdt'?'':cxHtml(r.id)}
+      <div class="src" style="margin-top:10px;font-size:12.5px"><b>Sources</b><ul class="plain">${allSources(r).map(s=>{ const k=tierOf(s[1]); return `<li><span class="tier ${k==='gen'?'n3':k}">${TIER_LABEL[k]}</span><a href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a></li>`; }).join('')}</ul></div>
+      ${CCN[r.id]?`<div style="margin-top:12px"><button class="btn sm" type="button" data-use="${r.id}">Utiliser cette convention dans la fiche</button></div>`:''}</div>`;
+}
+function runTests(){
+  let ko=0;
+  $('tests-body').innerHTML = TESTS.map(t=>{
+    const r=compute(t.inp); let ok=!r.erreur;
+    if(ok){
+      ok = r.mois===t.mois && Math.abs(r.legal.montant-t.legal)<0.011 && Math.abs(r.retenu.montant-t.retenu)<0.011 && (t.conv===undefined || Math.abs(r.conv.montant-t.conv)<0.011)
+        && (t.arrondi===undefined || r.fin.retenuArrondi===t.arrondi) && (t.total===undefined || Math.abs(r.fin.total-t.total)<0.011)
+        && (t.contrib===undefined || t.contrib===null || Math.abs(r.fin.contrib-t.contrib)<0.011);
+    }
+    if(!ok) ko++;
+    const att = t.total!==undefined ? t.total : t.retenu;
+    const obt = r.erreur?'—':fmtEur(t.total!==undefined ? r.fin.total : r.retenu.montant);
+    return `<tr><td class="${ok?'pass':'fail'}">${ok?'✓':'✗'}</td><td>${t.nom}</td><td>${t.calcul}</td><td class="r">${fmtEur(att)}</td><td class="r">${obt}</td></tr>`;
+  }).join('');
+  const c=$('tcount'); c.textContent = ko? ko+' ✗' : TESTS.length+' ✓'; c.classList.toggle('ko',!!ko);
+  TEST_KO=ko; testsOpt($('opt-tests').checked, ko);
+}
+
+/* ---------- Fiches enregistrées, import / export ---------- */
+const FKEY='indemnites-fiches-v2';
+function loadF(){ try{ return JSON.parse(localStorage.getItem(FKEY)||'{}'); }catch(e){ return {}; } }
+function saveF(f){ try{ localStorage.setItem(FKEY,JSON.stringify(f)); return true; }catch(e){ return false; } }
+function ioMsg(t){ $('io-msg').textContent=t; }
+function renderSaved(){
+  const f=loadF(); const ids=Object.keys(f).sort((a,b)=>(f[a].nom||'').localeCompare(f[b].nom||''));
+  $('saved').innerHTML = '<option value="">— Fiches enregistrées —</option>' + ids.map(id=>`<option value="${id}"${id===S.id?' selected':''}>${(f[id].nom||'Sans nom')} ${(f[id].prenom||'')} · ${f[id].motif==='rc'?'RC':'IL'} · ${fr(f[id].sortie)}</option>`).join('');
+}
+const slug = s => (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'') || 'FICHE';
+const fname = ext => `${S.motif==='rc'?'IRC':'IL'}_${slug(S.nom)}.${ext}`;
+function browserDownload(filename, data){
+  const blob = typeof data==='string' ? new Blob([data],{type:'application/json'}) : data;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  ioMsg('Fichier téléchargé : '+filename);
+}
+async function saveFile(filename, data){
+  /* Dans Claude : boîte de téléchargement de la plateforme ; sur une page web ordinaire : téléchargement du navigateur. */
+  if(typeof claude==='undefined' || !claude.use){ browserDownload(filename, data); return; }
+  try{
+    const dl = await claude.use('downloads');
+    if(!dl){ browserDownload(filename, data); return; }
+    await dl.save({filename, data}); ioMsg('Fichier proposé au téléchargement.');
+  }catch(e){
+    if(e && e.code==='declined') ioMsg('Téléchargement annulé.'); else browserDownload(filename, data);
+  }
+}
+let xlsxLoading=null;
+function loadXlsx(){
+  if(window.XLSX) return Promise.resolve();
+  if(xlsxLoading) return xlsxLoading;
+  xlsxLoading = new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload=res; s.onerror=()=>{ xlsxLoading=null; rej(new Error('xlsx')); }; document.head.appendChild(s); });
+  return xlsxLoading;
+}
+/* ---------- Export PDF ---------- */
+const PKEY='indemnites-pdf-v1';
+const PDF_NOTE_DEF='Calcul indicatif, à valider avant toute utilisation. Montants bruts.';
+let PDFS = (()=>{ try{ const o=JSON.parse(localStorage.getItem(PKEY)||'null'); if(o&&Array.isArray(o.sel)) return Object.assign({entete:'',note:PDF_NOTE_DEF,style:'site'},o); }catch(e){} return { sel:PDF_PRESETS.client.slice(), entete:'', note:PDF_NOTE_DEF, style:'site' }; })();
+function savePdfS(){ try{ localStorage.setItem(PKEY,JSON.stringify(PDFS)); }catch(e){} }
+function pdfMsg(t){ $('pdf-msg').textContent=t; }
+function renderPdfPanel(){
+  const calOk = S.motif==='rc';
+  $('pdf-blocs').innerHTML = PDF_BLOCS.map(b=>{
+    const na = b.id==='cal' && !calOk;
+    return `<label class="${na?'off':''}"><input type="checkbox" data-pb="${b.id}"${PDFS.sel.includes(b.id)?' checked':''}${na?' disabled':''}><span>${b.label}${na?' <i>(rupture conventionnelle seulement)</i>':''}</span></label>`;
+  }).join('');
+  $('pdf-style').value=PDFS.style||'site'; $('pdf-entete').value=PDFS.entete||''; $('pdf-note').value=PDFS.note==null?PDF_NOTE_DEF:PDFS.note;
+}
+let pdfLoading=null;
+function loadJsPdf(){
+  if(window.jspdf) return Promise.resolve();
+  if(pdfLoading) return pdfLoading;
+  pdfLoading = new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; s.onload=res; s.onerror=()=>{ pdfLoading=null; rej(new Error('jspdf')); }; document.head.appendChild(s); });
+  return pdfLoading;
+}
+function pdfData(r){
+  const sal = salaireDepuisMois(S.mois);
+  const c = CCN[S.ccn];
+  const cat = c && c.categories ? (c.categories.find(x=>x[0]===S.categorie)||[])[1] : '';
+  const f = r.fin;
+  const formule = r.erreur ? '' : `Légal : MAX(moy.12 ; moy.3) × (${r.exprLegal})` + (r.exprConv ? `\nCCN : ${r.conv.baseKey==='sr12'?'moy.12':r.conv.baseKey==='srMax3'?'MAX(moy.12 ; moy.3 ; dernier salaire)':'MAX(moy.12 ; moy.3)'} × (${r.exprConv})` : '');
+  const regles = RULES_DOC.filter(d=>d.id===S.ccn || d.id==='cdt');
+  return { S, r, rows:monthRows(), opts:{ style:PDFS.style||'site', accent:couleurHex(), sel:PDFS.sel, titre:$('pdf-titre').value.trim(), entete:PDFS.entete, note:PDFS.note },
+    MOTIFS, ccnNom: S.ccn==='none'?'':c.nom, regles, cal:calendrierRC(S.dateRef, calCfg()), proc:(S.motif==='rc'?null:calendrierProcedure(S.motif, procCfg(r))), frL, fmtEur, fr, fmtAnc,
+    sr12:sal.sr12, sr3:sal.sr3, categorieLabel:cat||'', ageTxt:r.age!=null?r.age+' ans'+(r.ageSource==='naissance'?' (né le '+fr(S.naissance)+')':''):'', formule,
+    regimeRows: regimeRows(r), cspRows: cspRows(r), dateJour: new Date().toLocaleDateString('fr-FR') };
+}
+async function exportPdf(){
+  const r = compute(inpFromS());
+  if(r.erreur && PDFS.sel.some(x=>['cmp','detail','montants','contrib','csp','hono','alertes'].includes(x))){ pdfMsg(r.erreur); return; }
+  if(!PDFS.sel.length){ pdfMsg('Cochez au moins un bloc.'); return; }
+  pdfMsg('Préparation du PDF…');
+  try{ await loadJsPdf(); }catch(e){ pdfMsg('Bibliothèque PDF indisponible (réseau).'); return; }
+  try{
+    const doc = buildPdf(window.jspdf.jsPDF, pdfData(r));
+    pdfMsg('');
+    await saveFile(fname('pdf'), doc.output('blob'));
+  }catch(e){ pdfMsg('Erreur de génération : '+(e&&e.message||e)); }
+}
+async function buildImageBlob(){
+  const r = compute(inpFromS());
+  if(r.erreur && PDFS.sel.some(x=>['cmp','detail','montants','contrib','regime','csp','hono','alertes'].includes(x))){ pdfMsg(r.erreur); return null; }
+  if(!PDFS.sel.length){ pdfMsg('Cochez au moins un bloc.'); return null; }
+  const d = pdfData(r); d.opts.single = true;
+  const doc = buildPdf(function(){ return makeCanvasDoc(7); }, d);
+  const cv = doc.toCanvas(210);
+  return await canvasToBlob(cv,'image/png');
+}
+async function exportImage(){
+  pdfMsg('Préparation de l\'image…');
+  try{ const b = await buildImageBlob(); if(!b) return; pdfMsg(''); await saveFile(fname('png'), b); }
+  catch(e){ pdfMsg('Erreur de génération : '+(e&&e.message||e)); }
+}
+async function copyImage(){
+  pdfMsg('Préparation de l\'image…');
+  try{
+    const b = await buildImageBlob(); if(!b) return;
+    if(!navigator.clipboard || !window.ClipboardItem){ pdfMsg('Copie impossible dans ce navigateur : utilisez « Générer l\'image ».'); return; }
+    await navigator.clipboard.write([new ClipboardItem({'image/png':b})]); pdfMsg('Image copiée dans le presse-papiers.');
+  }catch(e){ pdfMsg('Copie refusée par le navigateur : utilisez « Générer l\'image ».'); }
+}
+function mdInline(s){
+  s=s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  s=s.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s=s.split(/(<a [^>]*>.*?<\/a>)/).map(p=>/^<a /.test(p)?p:p.replace(/\b([LRD])(\d{4}-\d+(?:-\d+)*)\b/g,(m,a,b)=>'<a href="https://code.travail.gouv.fr/code-du-travail/'+(a+b).toLowerCase()+'" target="_blank" rel="noopener" title="Texte de l\'article sur code.travail.gouv.fr">'+m+'</a>')).join('');
+  return s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+}
+function mdHtml(md){
+  const L=md.split('\n'), out=[]; let i=0;
+  while(i<L.length){ const l=L[i];
+    if(/^\s*$/.test(l)){i++;continue;}
+    let m;
+    if((m=l.match(/^(#{1,3}) (.*)/))){ out.push('<h'+(m[1].length+2)+'>'+mdInline(m[2])+'</h'+(m[1].length+2)+'>'); i++; continue; }
+    if(/^\|/.test(l)){ const rows=[]; while(i<L.length && /^\|/.test(L[i])){ if(!/^\|\s*-/.test(L[i])) rows.push(L[i].replace(/^\||\|\s*$/g,'').split('|').map(c=>c.trim())); i++; }
+      out.push('<table><thead><tr>'+rows[0].map(c=>'<th>'+mdInline(c)+'</th>').join('')+'</tr></thead><tbody>'+rows.slice(1).map(r=>'<tr>'+r.map(c=>'<td>'+mdInline(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'); continue; }
+    if(/^(- |\d+\. )/.test(l)){ const ol=/^\d/.test(l), it=[]; while(i<L.length && /^(- |\d+\. )/.test(L[i])){ it.push('<li>'+mdInline(L[i].replace(/^(- |\d+\. )/,''))+'</li>'); i++; } out.push((ol?'<ol>':'<ul>')+it.join('')+(ol?'</ol>':'</ul>')); continue; }
+    const p=[]; while(i<L.length && !/^\s*$/.test(L[i]) && !/^(#|\||- |\d+\. )/.test(L[i])){ p.push(L[i]); i++; }
+    const txt=p.join(' '); out.push(/^\*\*Pour aller plus loin/.test(txt)?'<p class="plus">'+mdInline(txt)+'</p>':'<p>'+mdInline(txt)+'</p>');
+  }
+  return out.join('');
+}
+function renderHistoLb(){
+  $('histo').innerHTML = HISTORIQUE.map((h,k)=>`<details class="hv"${k===0?' open':''}><summary><b>${h.v}</b> · ${h.d} · ${mdInline(h.t)}</summary>${h.m?'<div class="hint" style="margin:4px 0 0 18px">Développé avec '+h.m+'</div>':''}<ul>${h.i.map(x=>'<li>'+mdInline(x)+'</li>').join('')}</ul></details>`).join('');
+  $('lb-ver').textContent = 'Version '+HISTORIQUE[0].v+' du '+HISTORIQUE[0].d+' — mis à jour à chaque version de l\'outil.';
+  const parts=LIVREBLANC.split(/\n(?=## )/), intro=parts.shift(), toc=[];
+  $('lb').innerHTML = mdHtml(intro) + parts.map((p,k)=>{ const nl=p.indexOf('\n'), tit=p.slice(3,nl).trim(); toc.push(`<a href="#lb-c${k}" data-c="${k}">${mdInline(tit)}</a>`); return `<details class="lbc" id="lb-c${k}"><summary>${mdInline(tit)}</summary>${mdHtml(p.slice(nl+1))}</details>`; }).join('');
+  $('lb-toc').innerHTML = toc.join('');
+}
+
+function genTest(){
+  const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1)), pick=a=>a[R(0,a.length-1)];
+  const iso=d=>d.toISOString().slice(0,10), addD=(d,n)=>new Date(d.getTime()+n*864e5);
+  const motif = pick(['rc','rc','rc','rc','lic','lic','lic','inaptNP','miseRet','departRet']);
+  const eco = motif==='lic' && Math.random()<0.35;
+  const retr = motif==='miseRet'||motif==='departRet';
+  const ids = Object.keys(CCN).filter(id=>{ const m=CCN_META[id]; return m && m.rang && m.rang<=20 && m.statut!=='legal'; });
+  const ccn = Math.random()<0.12 ? 'none' : pick(ids);
+  const c = CCN[ccn]; let cat = 'etam', cadre=false;
+  if(c && c.categories){ const cs=c.categories.map(x=>x[0]); cat = pick(cs); cadre = /cadre/.test(cat); }
+  const age = retr ? (motif==='miseRet'?R(65,69):R(62,66)) : R(27,58);
+  const anc = Math.min(R(2,24), age-20);
+  const auj = new Date(); auj.setUTCHours(0,0,0,0);
+  let ref = addD(auj, R(14,60)); while([0,6].includes(ref.getUTCDay())) ref=addD(ref,1);
+  const base = cadre ? R(3800,6500) : R(1850,3600), arr=Math.round(base/10)*10;
+  const mois = Array.from({length:12},(_,i)=>({brut:String(arr + (Math.random()<0.15? R(-80,150):0)),recon:'',inclus:true,note:''}));
+  const noms=['Camille','Julien','Sophie','Nicolas','Léa','Thomas','Claire','Antoine'];
+  const dm=R(1,28), nm=R(0,11);
+  const build = sortie => {
+    const entree = new Date(Date.UTC(sortie.getUTCFullYear()-anc, sortie.getUTCMonth(), dm));
+    const nais = new Date(Date.UTC(sortie.getUTCFullYear()-age-1, nm, dm));
+    S = Object.assign(DEFAULT(), { nom:'EXEMPLE', prenom:pick(noms)+' (test)', emploi:cadre?'Cadre':'Employé(e)', motif, eco, ccn, categorie:cat, naissance:iso(nais), ageRef:'sortie', entree:iso(entree), sortie:iso(sortie), dateRef:iso(ref), mois, remN1:String(arr*12), honoraires:honoDefaut(eco?'licEco':motif), notes:'Cas fictif généré automatiquement.' });
+  };
+  const build2 = () => { const so=parseISO(S.sortie); S.entree=iso(new Date(Date.UTC(so.getUTCFullYear()-anc, so.getUTCMonth(), dm))); S.naissance=iso(new Date(Date.UTC(so.getUTCFullYear()-age-1, nm, dm))); };
+  /* la fin de contrat doit respecter le calendrier de la procédure (rupture au plus tôt, fin de préavis) */
+  const proc = motif==='rc'||retr ? null : { d0:iso(ref) };
+  const calc = () => { try{
+    if(motif==='rc'){ const c=calendrierRC(S.dateRef, calCfg()); return c&&c.ruptureAuPlusTot ? { fin:c.ruptureAuPlusTot, sig:c.signature } : null; }
+    const c=calendrierProcedure(motif, procCfg(compute(inpFromS()))); if(!c||!c.fin) return null;
+    const n=c.etapes.find(x=>/^Notification/.test(x.label)); return { fin:c.fin, sig:n?n.iso:null }; }catch(e){ return null; } };
+  const extra = motif==='rc' ? R(0,21) : 0;
+  build(addD(ref,60)); if(proc) S.proc=proc; push();
+  for(let k=0;k<3;k++){ const c=calc(); if(!c) break; if(c.sig) S.dateRef=c.sig; S.sortie=iso(addD(parseISO(c.fin),extra)); build2(); push(); }
+  _procMotif=null; push(); render(); renderSaved(); show('fiche');
+  return { motif:eco?'licEco':motif, ccn, cat, age, anc, base:arr, sortie:S.sortie };
+}
+function renderParams(){
+  const cur = COULEURS.find(c=>c[0]===PARAMS.couleur)||COULEURS[0];
+  $('sw').innerHTML = COULEURS.map(c=>`<button type="button" data-col="${c[0]}" style="background:${c[2]}" title="${c[1]}" aria-label="${c[1]}" aria-pressed="${c[0]===cur[0]}"></button>`).join('');
+  $('sw-lab').textContent = cur[1]+' · sur cet appareil';
+  $('p-auteur').value = PARAMS.auteur||''; $('p-csptaux').value = PARAMS.cspTaux||'';
+  $('hgrid').innerHTML = Object.entries(MOTIFS).map(([k,v])=>`<label class="f"><span>${v} (€)</span><input type="number" min="0" step="0.01" inputmode="decimal" data-hk="${k}" value="${honoDefaut(k)}"></label>`).join('');
+}
+function initParams(){
+  renderParams(); renderHistoLb();
+  initRetours();
+  $('opt-aide').checked = PARAMS.aide!==false; $('opt-aide').addEventListener('change',e=>{ PARAMS.aide=e.target.checked; saveParams(); applyAide(); });
+  $('b-gen').addEventListener('click',()=>{ const g=genTest(); $('gen-msg').textContent='Cas généré : '+(MOTIFS[g.motif]||g.motif)+', '+ccnLabel(g.ccn)+', '+g.age+' ans, '+g.anc+' ans d\'ancienneté.'; });
+  $('lb-toc').addEventListener('click',e=>{ const a=e.target.closest('a[data-c]'); if(!a) return; e.preventDefault(); const c=$('lb-c'+a.dataset.c); c.open=true; c.scrollIntoView({behavior:'smooth',block:'start'}); });
+  $('lb-open').addEventListener('click',()=>document.querySelectorAll('#lb details').forEach(x=>x.open=true));
+  $('lb-close').addEventListener('click',()=>document.querySelectorAll('#lb details').forEach(x=>x.open=false));
+  $('sw').addEventListener('click',e=>{ const b=e.target.closest('button[data-col]'); if(!b) return; PARAMS.couleur=b.dataset.col; saveParams(); applyTheme(); renderParams(); });
+  $('p-auteur').addEventListener('input',e=>{ const prev=PARAMS.auteur||''; PARAMS.auteur=e.target.value; saveParams(); if(!S.auteur || S.auteur===prev){ S.auteur=PARAMS.auteur; $('auteur').value=S.auteur; } });
+  $('p-csptaux').addEventListener('input',e=>{ const prev=PARAMS.cspTaux||''; PARAMS.cspTaux=e.target.value; saveParams(); if(!S.cspTaux || String(S.cspTaux)===String(prev)){ S.cspTaux=PARAMS.cspTaux; $('cspTaux').value=S.cspTaux; render(); } });
+  $('hgrid').addEventListener('input',e=>{ const k=e.target.dataset.hk; if(!k) return; PARAMS.hono[k]=e.target.value; saveParams();
+    if(S.honoAuto && S.motif===k){ S.honoraires=e.target.value; $('honoraires').value=S.honoraires; render(); } });
+}
+function initPdf(){
+  renderPdfPanel();
+  $('b-pdf').addEventListener('click',()=>{ const p=$('pdf-panel'); p.hidden=!p.hidden; $('b-pdf').setAttribute('aria-expanded',String(!p.hidden)); if(!p.hidden) renderPdfPanel(); });
+  $('pdf-close').addEventListener('click',()=>{ $('pdf-panel').hidden=true; $('b-pdf').setAttribute('aria-expanded','false'); });
+  $('pdf-blocs').addEventListener('change',e=>{ const id=e.target.dataset.pb; if(!id) return; PDFS.sel = PDF_BLOCS.map(b=>b.id).filter(x=>x===id ? e.target.checked : PDFS.sel.includes(x)); savePdfS(); });
+  $('pdf-client').addEventListener('click',()=>{ PDFS.sel=PDF_PRESETS.client.slice(); savePdfS(); renderPdfPanel(); });
+  $('pdf-full').addEventListener('click',()=>{ PDFS.sel=PDF_PRESETS.complet.slice(); savePdfS(); renderPdfPanel(); });
+  $('pdf-style').addEventListener('change',e=>{ PDFS.style=e.target.value; savePdfS(); });
+  $('pdf-entete').addEventListener('input',e=>{ PDFS.entete=e.target.value; savePdfS(); });
+  $('pdf-note').addEventListener('input',e=>{ PDFS.note=e.target.value; savePdfS(); });
+  $('pdf-go').addEventListener('click',exportPdf);
+  $('img-go').addEventListener('click',exportImage);
+  $('img-copy').addEventListener('click',copyImage);
+}
+
+function legalLines(){
+  const out=[]; const ccn=CCN[S.ccn];
+  out.push(S.ccn==='none' ? 'Code du travail seul' : 'CCN '+ccn.nom, '');
+  const docs = RULES_DOC.filter(d=>d.id===S.ccn || d.id==='cdt');
+  docs.forEach(d=>{ out.push(d.titre.toUpperCase()); d.items.forEach(x=>out.push(`• ${x[0]} : ${x[1]}`)); out.push('Points ambigus :'); d.ambigu.forEach(a=>out.push(' - '+a)); out.push('Sources :'); d.sources.forEach(s=>out.push(` - ${s[0]} ${s[1]}`)); out.push(''); });
+  out.push('Règles provisoires : à valider sur le texte de la convention (Légifrance).');
+  return out;
+}
+async function exportXlsx(){
+  const r = compute(inpFromS());
+  if(r.erreur){ ioMsg(r.erreur); return; }
+  ioMsg('Préparation du fichier…');
+  try{ await loadXlsx(); }catch(e){ ioMsg('Bibliothèque Excel indisponible (réseau).'); return; }
+  const wb = buildWorkbook(window.XLSX, S, r, monthRows(), legalLines());
+  const buf = window.XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  await saveFile(fname('xlsx'), new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+}
+
+
+/* ---------- Import Silae ---------- */
+const SMEMO_KEY='indemnites-silae-memo-v1';
+function loadMemo(){ try{ return JSON.parse(localStorage.getItem(SMEMO_KEY)||'{}'); }catch(e){ return {}; } }
+function saveMemo(m){ try{ localStorage.setItem(SMEMO_KEY,JSON.stringify(m)); }catch(e){} }
+let SIL=null; // {an, choix, nomFichier, aligne}
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function silMsg(t){ $('silae-msg').textContent=t; }
+async function importSilae(file){
+  silMsg('Lecture du fichier…');
+  try{ await loadXlsx(); }catch(e){ silMsg('Bibliothèque Excel indisponible (réseau).'); return; }
+  let wb;
+  try{ wb = window.XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true}); }catch(e){ silMsg('Fichier illisible.'); return; }
+  const feuilles = wb.SheetNames.map(n=>({name:n, rows:window.XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true})}));
+  const tab = trouverFeuille(feuilles);
+  if(!tab){ silMsg('Aucun tableau « fiche individuelle » reconnu (en-tête de mois et ligne Brut attendus).'); $('silae-panel').hidden=true; SIL=null; return; }
+  const an = analyser(tab);
+  const memo = loadMemo(); const choix = {};
+  an.lignes.forEach(l=>{ if(l.ask && memo[_plain(l.label)]) choix[l.idx]=memo[_plain(l.label)]; });
+  SIL = { an, choix, nom:file.name, titre:lireTitre(tab.titre), feuille:tab.feuille };
+  silMsg(''); renderSilae();
+}
+const OPT_GARDER='Garder dans le brut', OPT_NEUT='Neutraliser (réintégrer / retirer)';
+function renderSilae(){
+  const box=$('silae-panel'); if(!SIL){ box.hidden=true; return; }
+  const {an}=SIL; box.hidden=false;
+  const lignes = an.lignes.filter(l=>!l.ignore && l.aDonnees);
+  const tot = l => l.vals.reduce((s,v)=>s+v,0);
+  const cibles = monthDates().map(toISO);
+  const al = aligner(an.mois, cibles);
+  const manque = cibles.length - al.trouves;
+  const aChoisir = lignes.filter(l=>l.ask && !SIL.choix[l.idx]);
+  const dec = l => SIL.choix[l.idx] || (l.ask ? '' : l.dec);
+  const sel = l=>{
+    const v=dec(l);
+    return `<select data-sl="${l.idx}">${l.ask?`<option value=""${v===''?' selected':''}>— À choisir —</option>`:''}
+      <option value="garder"${v==='garder'?' selected':''}>${OPT_GARDER}</option>
+      <option value="neutraliser"${v==='neutraliser'?' selected':''}>${OPT_NEUT}</option></select>`;
+  };
+  const row = l=>`<tr class="${l.ask&&!SIL.choix[l.idx]?'need':''}"><td>${esc(l.label)}${l.why?`<span class="why">${esc(l.why)}</span>`:''}</td><td class="n">${fmtEur(tot(l))}</td><td>${sel(l)}</td></tr>`;
+  const ask = lignes.filter(l=>l.ask), sure = lignes.filter(l=>!l.ask);
+  const per = `${an.mois[0].label} → ${an.mois[an.mois.length-1].label}`;
+  const att = cibles.map(c=>c.slice(0,7)); const pe = `${monthLabel(parseISO(cibles[0]))} → ${monthLabel(parseISO(cibles[11]))}`;
+  box.innerHTML = `<div class="sil"><h3>Import : ${esc(SIL.nom)}</h3>
+    <div class="meta">Feuille « ${esc(SIL.feuille)} » · ${an.mois.length} mois (${per})${SIL.titre?` · ${esc(SIL.titre.nom)} ${esc(SIL.titre.prenom)}`:''}<br>
+    Contrôle : somme des rubriques = brut Silae → ${an.controleOk?'<span class="ok">✓ cohérent sur tous les mois</span>':'<span class="ko">écart détecté (une rubrique manque ou a été lue de travers)</span>'}<br>
+    Période attendue : ${pe} → ${manque===0?'<span class="ok">✓ les 12 mois sont dans le fichier</span>':`<span class="ko">${manque} mois absent(s) du fichier</span> (ils seront écartés de la moyenne)`}</div>
+    ${ask.length?`<div style="font-weight:600;font-size:12.5px;margin-top:6px">À trancher (${aChoisir.length} restant${aChoisir.length>1?'s':''})</div>
+    <table class="stbl"><thead><tr><th>Rubrique</th><th style="text-align:right">Total période</th><th>Choix</th></tr></thead><tbody>${ask.map(row).join('')}</tbody></table>`:''}
+    <details${ask.length?'':' open'}><summary class="hint" style="cursor:pointer">${sure.length} rubrique(s) traitée(s) automatiquement</summary>
+    <table class="stbl"><thead><tr><th>Rubrique</th><th style="text-align:right">Total période</th><th>Traitement</th></tr></thead><tbody>${sure.map(row).join('')}</tbody></table></details>
+    <label class="hint" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="sl-memo" checked> Mémoriser mes choix pour les prochains dossiers</label>
+    <div class="bar" style="margin-top:8px"><button class="btn primary sm" id="sl-apply" type="button"${aChoisir.length?' disabled':''}>Remplir le tableau des 12 mois</button><button class="btn ghost sm" id="sl-close" type="button">Fermer</button></div>
+    <div class="hint">« Neutraliser » annule l'effet de la rubrique : une absence est réintégrée, une prime est retirée. Les montants apparaissent ensuite dans « Reconstitué », modifiables ligne par ligne.</div></div>`;
+}
+function appliquerSilae(){
+  if(!SIL) return;
+  const {an}=SIL; const memo=loadMemo();
+  if($('sl-memo') && $('sl-memo').checked) an.lignes.forEach(l=>{ if(l.ask && SIL.choix[l.idx]) memo[_plain(l.label)]=SIL.choix[l.idx]; });
+  saveMemo(memo);
+  const calc = appliquer(an, SIL.choix, {});
+  const cibles = monthDates().map(toISO); let al = aligner(an.mois, cibles);
+  let msg='';
+  if(al.trouves===0){ // aucun recoupement : on prend les 12 derniers mois du fichier
+    const n=calc.length; al={map:cibles.map((_,i)=>{ const k=n-12+i; return k>=0?k:-1; }), trouves:Math.min(12,n)};
+    msg='Les mois du fichier ne correspondent pas à la date de référence : les 12 derniers mois du fichier ont été repris. Vérifiez la date de signature / notification.';
+  }
+  S.mois = al.map.map(k=>{
+    if(k<0) return {brut:'',recon:'',inclus:false,note:'Hors fichier'};
+    const c=calc[k]; return {brut:String(_r2(c.brut)), recon:c.recon?String(c.recon):'', inclus:true, note:c.note};
+  });
+  if(SIL.titre && !S.nom && !S.prenom){ S.nom=SIL.titre.nom; S.prenom=SIL.titre.prenom; push(); } else renderMonths();
+  render(); $('silae-panel').hidden=true;
+  silMsg(msg||`Tableau rempli depuis ${SIL.nom}.`);
+  SIL=null;
+}
+
+/* ---------- Événements ---------- */
+function bind(){
+  $('nav').addEventListener('click',e=>{ const b=e.target.closest('button[data-view]'); if(b) show(b.dataset.view); });
+  TXT.forEach(k=>{
+    const el=$(k); if(!el) return;
+    el.addEventListener('input',()=>{
+      if(k==='motif'){ S.motif = el.value==='licEco' ? 'lic' : el.value; S.eco = el.value==='licEco'; if(!S.eco) S.csp=false; } else S[k]=el.value;
+      if(k==='ccn'){ syncCcnFields(); renderAbs(); }
+      if(k==='motif'){ syncCcnFields(); applyHonoAuto(); }
+      if(k==='honoraires'){ S.honoAuto=false; }
+      if(k==='dateRef'||k==='sortie') { if(k==='sortie'&&!S.dateRef){} renderMonths(); }
+      render();
+    });
+  });
+  $('csp').addEventListener('change',()=>{ S.csp=$('csp').checked; syncCcnFields(); render(); });
+  $('droitRetraite').addEventListener('change',()=>{ S.droitRetraite=$('droitRetraite').checked; render(); });
+  $('abs-add').addEventListener('click',()=>{ S.absences.push({type:'maladie',jours:30}); renderAbs(); render(); });
+  $('abs-list').addEventListener('input',e=>{
+    const t=e.target, i=+t.dataset.i; if(isNaN(i)) return;
+    S.absences[i][t.dataset.k] = t.dataset.k==='jours' ? (+t.value||0) : t.value;
+    if(t.dataset.k==='type') renderAbs(); render();
+  });
+  $('abs-list').addEventListener('click',e=>{ const b=e.target.closest('[data-del]'); if(!b) return; S.absences.splice(+b.dataset.del,1); renderAbs(); render(); });
+  $('mbody').addEventListener('input',e=>{
+    const t=e.target, i=+t.dataset.m; if(isNaN(i)) return;
+    const k=t.dataset.k;
+    S.mois[i][k] = k==='inclus' ? t.checked : t.value;
+    if(k==='inclus') t.closest('tr').classList.toggle('off',!t.checked);
+    $('mt-'+i).textContent = fmtEur((+S.mois[i].brut||0)+(+S.mois[i].recon||0));
+    updateAvgs(); render();
+  });
+  $('fill-btn').addEventListener('click',()=>{ const v=$('fill-val').value; if(v==='') return; S.mois.forEach(m=>{ m.brut=v; }); renderMonths(); render(); });
+  $('result').addEventListener('click',e=>{
+    if(!e.target.closest('#copy')) return;
+    const msg=$('copy-msg'), tb=$('copybox');
+    const fallback=()=>{ tb.hidden=false; tb.value=lastText; tb.focus(); tb.select(); msg.textContent='Copie automatique impossible : sélectionnez et copiez le texte.'; };
+    try{ navigator.clipboard.writeText(lastText).then(()=>{ msg.textContent='Copié.'; },fallback); }catch(err){ fallback(); }
+  });
+  $('rules').addEventListener('change',e=>{ const c=e.target.closest('[data-valid]'); if(!c) return; const v=loadV(); v[c.dataset.valid]=c.checked; saveV(v); renderRules(); });
+  $('rq').addEventListener('input',e=>{ RS.q=e.target.value; renderRules(); });
+  $('rfilters').addEventListener('click',e=>{ const b=e.target.closest('[data-f]'); if(!b) return; RS.f=b.dataset.f; renderRules(); });
+  $('rlist').addEventListener('click',e=>{ const b=e.target.closest('[data-sel]'); if(!b) return; RS.sel=b.dataset.sel; renderRules(); const d=$('rules'); if(window.innerWidth<=860) d.scrollIntoView({behavior:'smooth',block:'start'}); });
+  $('rules').addEventListener('click',e=>{ const b=e.target.closest('[data-use]'); if(!b) return; S.ccn=b.dataset.use; push(); render(); show('fiche'); });
+  $('b-rules').addEventListener('click',()=>{ RS.sel=(RULES_DOC.some(d=>d.id===S.ccn)?S.ccn:'cdt'); RS.q=''; RS.f='all'; $('rq').value=''; renderRules(); show('regles'); });
+
+  $('b-new').addEventListener('click',()=>{ S=DEFAULT(); push(); render(); renderSaved(); ioMsg('Nouvelle fiche.'); });
+  $('b-save').addEventListener('click',()=>{
+    const f=loadF(); if(!S.id) S.id='f'+Date.now().toString(36);
+    f[S.id]=JSON.parse(JSON.stringify(S));
+    ioMsg(saveF(f) ? 'Fiche enregistrée dans ce navigateur.' : 'Enregistrement impossible ici : utilisez l\'export.'); renderSaved();
+  });
+  $('b-del').addEventListener('click',()=>{ if(!S.id) return; const f=loadF(); delete f[S.id]; saveF(f); S=DEFAULT(); push(); render(); renderSaved(); ioMsg('Fiche supprimée.'); });
+  $('saved').addEventListener('change',e=>{ const id=e.target.value; if(!id) return; const f=loadF(); if(f[id]){ S=Object.assign(DEFAULT(),{honoAuto:false,auteur:'',cspTaux:'',preavisBase:'dernier'},JSON.parse(JSON.stringify(f[id]))); push(); render(); ioMsg('Fiche ouverte.'); } });
+
+  $('silae-file').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) importSilae(f); e.target.value=''; });
+  $('silae-panel').addEventListener('change',e=>{
+    const s=e.target.closest('select[data-sl]'); if(!s||!SIL) return;
+    if(s.value) SIL.choix[+s.dataset.sl]=s.value; else delete SIL.choix[+s.dataset.sl];
+    renderSilae();
+  });
+  $('silae-panel').addEventListener('click',e=>{
+    if(e.target.closest('#sl-apply')) appliquerSilae();
+    if(e.target.closest('#sl-close')){ SIL=null; renderSilae(); }
+  });
+  $('b-xlsx').addEventListener('click',exportXlsx);
+  initPdf(); initCal(); initProc();
+  $('b-json').addEventListener('click',()=>saveFile(fname('json'), JSON.stringify(S,null,1)));
+  $('b-import').addEventListener('change',e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const rd=new FileReader();
+    rd.onload=()=>{ try{ const o=JSON.parse(rd.result); if(!o||typeof o!=='object'||!('entree' in o)) throw 0; S=Object.assign(DEFAULT(),{honoAuto:false,auteur:'',cspTaux:'',preavisBase:'dernier'},o,{id:null}); push(); render(); renderSaved(); ioMsg('Fiche importée.'); }catch(err){ ioMsg('Fichier non reconnu.'); } };
+    rd.readAsText(file); e.target.value='';
+  });
+}
+function testsOpt(on, ko){
+  const nav=$('nav-tests'); const show_ = !!on || !!ko;
+  nav.hidden = !show_;
+  if(!show_ && !$('v-tests').hidden) show('fiche');
+}
+function loadTestsPref(){ try{ return localStorage.getItem('ind-tests')==='1'; }catch(e){ return false; } }
+function show(v){
+  ['fiche','regles','params','tests','auteur'].forEach(k=>{ $('v-'+k).hidden = k!==v; });
+  if(v==='auteur') auteurInit();
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
+  try{ history.replaceState(null,'','#'+v); }catch(e){}
+}
+
+let TEST_KO=0;
+{ const d = 'Version __APP_VERSION__ du __APP_DATE__ — recoupement avec le simulateur officiel du '+CROISEMENT.date+' ('+CROISEMENT.version+') — '+TESTS.length+' cas de test';
+  $('ver').title=d; $('foot-ver').textContent=d; }
+$('opt-tests').checked = loadTestsPref();
+$('opt-tests').addEventListener('change',()=>{ try{ localStorage.setItem('ind-tests',$('opt-tests').checked?'1':'0'); }catch(e){} testsOpt($('opt-tests').checked, TEST_KO); });
+initForm(); initAide(); applyAide(); initParams(); bind(); render(); renderRules(); renderSaved(); runTests();
+const h=(location.hash||'').replace('#',''); if(h==='regles'||h==='params'||h==='auteur') show(h); else if(h==='tests'){ $('opt-tests').checked=true; testsOpt(true,TEST_KO); show('tests'); }
+</script>
+</body>
+</html>

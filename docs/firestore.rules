@@ -1,0 +1,21 @@
+// Règles Firestore de la messagerie « Contacter l'auteur ».
+// Remplacer ADRESSE.AUTEUR@gmail.com par l'adresse du compte autorisé à lire les messages.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /retours-indemnites/{id} {
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['type','message','contact','contexte','fiche','statut','createdAt'])
+        && request.resource.data.keys().hasAll(['type','message','statut','createdAt'])
+        && request.resource.data.type in ['probleme','idee','question']
+        && request.resource.data.message is string && request.resource.data.message.size() >= 5 && request.resource.data.message.size() <= 2000
+        && (!('contact' in request.resource.data) || (request.resource.data.contact is string && request.resource.data.contact.size() <= 200))
+        && (!('contexte' in request.resource.data) || (request.resource.data.contexte is string && request.resource.data.contexte.size() <= 400))
+        && (!('fiche' in request.resource.data) || (request.resource.data.fiche is string && request.resource.data.fiche.size() <= 8000))
+        && request.resource.data.statut == 'nouveau' && request.resource.data.createdAt == request.time;
+      allow read, update, delete: if request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'ADRESSE.AUTEUR@gmail.com';
+    }
+  }
+}
